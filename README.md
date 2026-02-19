@@ -148,123 +148,233 @@ routes/
 
 ---
 
+## Laporan Teknis
+
+Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 hingga TS-13), strategi seeding 5 juta data, penjelasan kode Atomic Transaction, Soft Deletes, Streaming Export, dan bukti pengujian dapat diakses melalui tautan berikut:
+
+📄 **[Buka Laporan Teknis – Google Docs](https://docs.google.com/document/d/1fAwluqN60qymQJml4SoKel0-9pn96gRs9J1T2eg4txw/preview)**
+
+> Laporan ini disusun sebagai dokumentasi resmi pengembangan Sistem eKRS skala besar oleh **Tasya Nurul Fadila**.
+
+---
+
 ## Screenshot
 
-> Folder `screenshoot/` berisi bukti visual pengujian setiap skenario (TS-01 hingga TS-13),
-> termasuk tampilan tabel dengan jutaan data, form validasi, halaman trash, dan proses export CSV.
-> Screenshot diurutkan berdasarkan nomor skenario untuk memudahkan penelusuran.
+### 1. Login
 
-1. **Alert Export CSV.png**
-
-![Alert Export CSV.png](./screenshoot/Alert%20Export%20CSV.png)
-
-2. **Alert Success Update Enrollment.png**
-
-![Alert Success Update Enrollment.png](./screenshoot/Alert%20Success%20Update%20Enrollment.png)
-
-3. **CSV Filter.png**
-
-![CSV Filter.png](./screenshoot/CSV%20Filter.png)
-
-4. **Dashboard.png**
-
-![Dashboard.png](./screenshoot/Dashboard.png)
-
-5. **Data Course.png**
-
-![Data Course.png](./screenshoot/Data%20Course.png)
-
-6. **Data Enrollment - AND.png**
-
-![Data Enrollment - AND.png](./screenshoot/Data%20Enrollment%20-%20AND.png)
-
-7. **Data Enrollment - Filter Export CSV.png**
-
-![Data Enrollment - Filter Export CSV.png](./screenshoot/Data%20Enrollment%20-%20Filter%20Export%20CSV.png)
-
-8. **Data Enrollment - Filter Semester.png**
-
-![Data Enrollment - Filter Semester.png](./screenshoot/Data%20Enrollment%20-%20Filter%20Semester.png)
-
-9. **Data Enrollment - Filter Status.png**
-
-![Data Enrollment - Filter Status.png](./screenshoot/Data%20Enrollment%20-%20Filter%20Status.png)
-
-10. **Data Enrollment - Halaman Trash.png**
-
-![Data Enrollment - Halaman Trash.png](./screenshoot/Data%20Enrollment%20-%20Halaman%20Trash.png)
-
-11. **Data Enrollment - Konfirmasi Soft Delete.png**
-
-![Data Enrollment - Konfirmasi Soft Delete.png](./screenshoot/Data%20Enrollment%20-%20Konfirmasi%20Soft%20Delete.png)
-
-12. **Data Enrollment - Menu Trash.png**
-
-![Data Enrollment - Menu Trash.png](./screenshoot/Data%20Enrollment%20-%20Menu%20Trash.png)
-
-13. **Data Enrollment - OR.png**
-
-![Data Enrollment - OR.png](./screenshoot/Data%20Enrollment%20-%20OR.png)
-
-14. **Data Enrollment - Search Kode Mata Kuliah.png**
-
-![Data Enrollment - Search Kode Mata Kuliah.png](./screenshoot/Data%20Enrollment%20-%20Search%20Kode%20Mata%20Kuliah.png)
-
-15. **Data Enrollment - Search Nama.png**
-
-![Data Enrollment - Search Nama.png](./screenshoot/Data%20Enrollment%20-%20Search%20Nama.png)
-
-16. **Data Enrollment - Search NIM.png**
-
-![Data Enrollment - Search NIM.png](./screenshoot/Data%20Enrollment%20-%20Search%20NIM.png)
-
-17. **Data Enrollment - Sorting Asc.png**
-
-![Data Enrollment - Sorting Asc.png](./screenshoot/Data%20Enrollment%20-%20Sorting%20Asc.png)
-
-18. **Data Enrollment - Sorting Desc.png**
-
-![Data Enrollment - Sorting Desc.png](./screenshoot/Data%20Enrollment%20-%20Sorting%20Desc.png)
-
-19. **Data Enrollment setelah update.png**
-
-![Data Enrollment setelah update.png](./screenshoot/Data%20Enrollment%20setelah%20update.png)
-
-20. **Data Enrollment.png**
-
-![Data Enrollment.png](./screenshoot/Data%20Enrollment.png)
-
-21. **Form Course.png**
-
-![Form Course.png](./screenshoot/Form%20Course.png)
-
-22. **Form Edit Enrollment.png**
-
-![Form Edit Enrollment.png](./screenshoot/Form%20Edit%20Enrollment.png)
-
-23. **Form Enrollment.png**
-
-![Form Enrollment.png](./screenshoot/Form%20Enrollment.png)
-
-24. **Login.png**
+> Halaman login sistem eKRS. Pengguna memasukkan email dan password untuk mengakses dashboard. Akun default: `admin@ekrs.com` / `password`.
 
 ![Login.png](./screenshoot/Login.png)
 
-25. **CSV Keseluruhan-1.png**
+---
+
+### 2. Dashboard
+
+> Halaman utama setelah login. Menampilkan ringkasan statistik sistem seperti jumlah mahasiswa, mata kuliah, dan total enrollment yang terdaftar.
+
+![Dashboard.png](./screenshoot/Dashboard.png)
+
+---
+
+### 3. Data Course
+
+> Halaman manajemen mata kuliah. Menampilkan daftar seluruh mata kuliah beserta kode, nama, dan jumlah SKS. Admin dapat menambah, mengedit, dan menghapus data.
+
+![Data Course.png](./screenshoot/Data%20Course.png)
+
+---
+
+### 4. Form Course
+
+> Form tambah/edit mata kuliah dengan validasi real-time (Livewire). Kode mata kuliah divalidasi menggunakan Regex untuk memastikan format sesuai standar institusi.
+
+![Form Course.png](./screenshoot/Form%20Course.png)
+
+---
+
+### 5. Form Enrollment
+
+> Form pengisian KRS baru. Mahasiswa dan mata kuliah dihubungkan dalam satu transaksi atomik yang menjamin konsistensi data di tabel `students`, `courses`, dan `enrollments`.
+
+![Form Enrollment.png](./screenshoot/Form%20Enrollment.png)
+
+---
+
+### 6. Data Enrollment
+
+> Halaman utama data enrollment (KRS). Menampilkan 5.000.000 baris data secara efisien menggunakan Server-Side Pagination — hanya 10–25 baris yang dimuat per halaman.
+
+![Data Enrollment.png](./screenshoot/Data%20Enrollment.png)
+
+---
+
+### 7. Data Enrollment - Sorting Asc
+
+> Fitur sorting ascending (A→Z / terkecil→terbesar). Pengurutan dieksekusi langsung di PostgreSQL menggunakan `ORDER BY`, menjaga performa tetap stabil pada 5 juta data.
+
+![Data Enrollment - Sorting Asc.png](./screenshoot/Data%20Enrollment%20-%20Sorting%20Asc.png)
+
+---
+
+### 8. Data Enrollment - Sorting Desc
+
+> Fitur sorting descending (Z→A / terbesar→terkecil). Sama seperti sorting ascending, query dijalankan di sisi server tanpa memuat seluruh data ke memori.
+
+![Data Enrollment - Sorting Desc.png](./screenshoot/Data%20Enrollment%20-%20Sorting%20Desc.png)
+
+---
+
+### 9. Data Enrollment - Filter Status
+
+> Quick Filter berdasarkan **Status** enrollment (aktif/tidak aktif). Filter bekerja real-time menggunakan Livewire dan mengirimkan query `WHERE` baru ke database tanpa reload halaman.
+
+![Data Enrollment - Filter Status.png](./screenshoot/Data%20Enrollment%20-%20Filter%20Status.png)
+
+---
+
+### 10. Data Enrollment - Filter Semester
+
+> Quick Filter berdasarkan **Semester**. Memungkinkan admin menyaring data enrollment per semester tertentu secara instan dari 5 juta baris data.
+
+![Data Enrollment - Filter Semester.png](./screenshoot/Data%20Enrollment%20-%20Filter%20Semester.png)
+
+---
+
+### 11. Data Enrollment - AND
+
+> Advanced Filter dengan logika **AND** — menggabungkan beberapa kondisi (misal: Tahun Ajaran + Status + Kode MK) secara bersamaan. Query dibangun dinamis oleh Laravel Query Builder.
+
+![Data Enrollment - AND.png](./screenshoot/Data%20Enrollment%20-%20AND.png)
+
+---
+
+### 12. Data Enrollment - OR
+
+> Advanced Filter dengan logika **OR** — menampilkan data yang memenuhi salah satu dari beberapa kondisi yang dipilih. Cocok untuk pencarian data yang lebih fleksibel.
+
+![Data Enrollment - OR.png](./screenshoot/Data%20Enrollment%20-%20OR.png)
+
+---
+
+### 13. Data Enrollment - Search NIM
+
+> Fitur Live Search berdasarkan **NIM**. Pencarian real-time dengan mekanisme debounce (300ms) agar tidak membebani server dengan query berlebih saat pengguna mengetik.
+
+![Data Enrollment - Search NIM.png](./screenshoot/Data%20Enrollment%20-%20Search%20NIM.png)
+
+---
+
+### 14. Data Enrollment - Search Nama
+
+> Fitur Live Search berdasarkan **Nama Mahasiswa**. Query menggunakan klausa `LIKE` yang diarahkan ke indeks kolom PostgreSQL untuk hasil yang cepat di tengah 5 juta data.
+
+![Data Enrollment - Search Nama.png](./screenshoot/Data%20Enrollment%20-%20Search%20Nama.png)
+
+---
+
+### 15. Data Enrollment - Search Kode Mata Kuliah
+
+> Fitur Live Search berdasarkan **Kode Mata Kuliah**. Memudahkan pencarian enrollment untuk mata kuliah tertentu secara spesifik dan instan.
+
+![Data Enrollment - Search Kode Mata Kuliah.png](./screenshoot/Data%20Enrollment%20-%20Search%20Kode%20Mata%20Kuliah.png)
+
+---
+
+### 16. Form Edit Enrollment
+
+> Form edit data enrollment yang sudah ada. Setiap perubahan melewati validasi berlapis (frontend + backend) dan dibungkus dalam Atomic Transaction untuk menjaga integritas data.
+
+![Form Edit Enrollment.png](./screenshoot/Form%20Edit%20Enrollment.png)
+
+---
+
+### 17. Alert Success Update Enrollment
+
+> Notifikasi sukses setelah data enrollment berhasil diperbarui. Alert ditampilkan secara real-time oleh Livewire tanpa reload halaman.
+
+![Alert Success Update Enrollment.png](./screenshoot/Alert%20Success%20Update%20Enrollment.png)
+
+---
+
+### 18. Data Enrollment setelah update
+
+> Tampilan tabel enrollment setelah proses update berhasil dilakukan. Data terbaru langsung tercermin di tabel tanpa perlu refresh manual.
+
+![Data Enrollment setelah update.png](./screenshoot/Data%20Enrollment%20setelah%20update.png)
+
+---
+
+### 19. Data Enrollment - Konfirmasi Soft Delete
+
+> Dialog konfirmasi sebelum menghapus data enrollment. Sistem menggunakan **Soft Delete** — data tidak langsung hilang, melainkan ditandai `deleted_at` di database.
+
+![Data Enrollment - Konfirmasi Soft Delete.png](./screenshoot/Data%20Enrollment%20-%20Konfirmasi%20Soft%20Delete.png)
+
+---
+
+### 20. Data Enrollment - Menu Trash
+
+> Menu Trash (Sampah) yang menampilkan seluruh data enrollment yang telah di-soft delete. Admin dapat memilih untuk **restore** atau **force delete** secara permanen.
+
+![Data Enrollment - Menu Trash.png](./screenshoot/Data%20Enrollment%20-%20Menu%20Trash.png)
+
+---
+
+### 21. Data Enrollment - Halaman Trash
+
+> Halaman detail Trash. Memperlihatkan daftar data terhapus lengkap dengan opsi pemulihan (restore) per baris, menjaga fleksibilitas pengelolaan data tanpa risiko kehilangan permanen.
+
+![Data Enrollment - Halaman Trash.png](./screenshoot/Data%20Enrollment%20-%20Halaman%20Trash.png)
+
+---
+
+### 22. Data Enrollment - Filter Export CSV
+
+> Tampilan data enrollment yang telah difilter, siap untuk diekspor. Sistem mendukung ekspor **hanya data hasil filter** tanpa harus mengunduh seluruh 5 juta baris.
+
+![Data Enrollment - Filter Export CSV.png](./screenshoot/Data%20Enrollment%20-%20Filter%20Export%20CSV.png)
+
+---
+
+### 23. Alert Export CSV
+
+> Notifikasi konfirmasi saat proses export CSV dimulai. Ekspor menggunakan metode **streaming** sehingga file langsung dikirim ke browser tanpa membebani RAM server.
+
+![Alert Export CSV.png](./screenshoot/Alert%20Export%20CSV.png)
+
+---
+
+### 24. CSV Keseluruhan-1
+
+> Proses unduhan CSV keseluruhan (bagian 1). Seluruh 5.000.000 baris data diekspor menggunakan teknik streaming — data dikirim bit demi bit langsung ke browser.
 
 ![CSV Keseluruhan-1.png](./screenshoot/CSV%20Keseluruhan-1.png)
 
-26. **CSV Keseluruhan-2.png**
+---
+
+### 25. CSV Keseluruhan-2
+
+> Proses unduhan CSV keseluruhan (bagian 2). Memperlihatkan kelanjutan proses streaming export yang berjalan lancar tanpa timeout atau memory exhaustion di sisi server.
 
 ![CSV Keseluruhan-2.png](./screenshoot/CSV%20Keseluruhan-2.png)
+
+---
+
+### 26. CSV Filter
+
+> Hasil file CSV dari ekspor data yang telah difilter. Hanya baris data yang sesuai kondisi filter yang masuk ke file, menghasilkan laporan yang lebih ringkas dan relevan.
+
+![CSV Filter.png](./screenshoot/CSV%20Filter.png)
+
+---
 
 
 ---
 
 ## Pengembang
 
-| Field   | Detail                                          |
-|---------|-------------------------------------------------|
-| Nama    | Tasya Nurul Fadila                              |
-| Posisi  | Web Developer (Full Stack)                      |
+| Field   | Detail                                              |
+|---------|-----------------------------------------------------|
+| Nama    | Tasya Nurul Fadila                                  |
+| Posisi  | Web Developer (Full Stack)                          |
 | Topik   | Pengelolaan Data Akademik Skala Besar (5 Juta Data) |
