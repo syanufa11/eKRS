@@ -1,0 +1,13 @@
+POST http://127.0.0.1:8000/api/v1/enrollments-test
+Content-Type: application/json
+Accept: application/json
+
+{
+    "student_nim": "123",
+    "student_name": "Te",
+    "student_email": "salah-email",
+    "course_id": 1,
+    "academic_year": "2025-2026",
+    "semester": "3",
+    "status": "DRAFT"
+}
