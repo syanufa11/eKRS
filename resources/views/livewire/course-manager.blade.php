@@ -186,56 +186,92 @@
     </div>
 
     {{-- ─── Modal Form ──────────────────────────────────────────────────────────── --}}
-    <div x-show="open" x-cloak
-        class="fixed inset-0 z-[999] flex items-center justify-center overflow-y-auto bg-gray-900/60 backdrop-blur-sm p-4">
+    <template x-teleport="body">
+        <div x-show="open"
+            x-cloak
+            @keydown.window.escape="open = false"
+            class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
 
-        <div x-transition:enter="transition ease-out duration-300"
-            x-transition:enter-start="opacity-0 scale-95"
-            x-transition:enter-end="opacity-100 scale-100"
-            class="no-scrollbar relative w-full max-w-[650px] overflow-y-auto rounded-3xl bg-white p-6 dark:bg-gray-900 lg:p-10 shadow-2xl border border-gray-100 dark:border-gray-800">
+            {{-- Overlay klik luar untuk menutup --}}
+            <div x-show="open"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                @click="open = false"
+                class="absolute inset-0"></div>
 
-            <div class="pr-12">
-                <h4 class="mb-2 text-2xl font-bold text-gray-800 dark:text-white/90">
-                    {{ $courseId ? 'Edit Course' : 'Add New Course' }}
-                </h4>
-                <p class="mb-8 text-sm text-gray-500 dark:text-gray-400">
-                    Silakan isi form akademik berikut dengan benar.
-                </p>
+            {{-- Kontainer Modal --}}
+            <div x-show="open"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 scale-95"
+                x-transition:enter-end="opacity-100 scale-100"
+                class="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-gray-800 overflow-hidden">
+
+                <div class="p-8 lg:p-12">
+                    <div class="flex justify-between items-start mb-8">
+                        <div>
+                            <h4 class="text-2xl font-bold text-gray-800 dark:text-white/90">
+                                {{ $courseId ? 'Edit Course' : 'Add New Course' }}
+                            </h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                Silakan isi form akademik berikut dengan benar.
+                            </p>
+                        </div>
+                        {{-- Tombol Close --}}
+                        <button @click="open = false" class="p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-gray-400 hover:text-rose-500 transition-all">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <form wire:submit.prevent="store" class="space-y-6">
+                        {{-- Input Kode Mata Kuliah --}}
+                        <div>
+                            <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider text-xs">Kode MK (Maks. 6 Karakter)</label>
+                            <input type="text"
+                                wire:model.live.debounce.500ms="code"
+                                maxlength="6"
+                                placeholder="Contoh: IF101"
+                                class="dark:bg-gray-800 h-12 w-full rounded-xl border {{ $errors->has('code') ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500' }} bg-transparent px-4 text-sm text-gray-800 dark:text-white uppercase transition shadow-sm" />
+                            @error('code') <span class="text-xs text-red-500 mt-2 block font-medium italic">⚠️ {{ $message }}</span> @enderror
+                        </div>
+
+                        {{-- Input Nama Mata Kuliah --}}
+                        <div>
+                            <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider text-xs">Nama Mata Kuliah</label>
+                            <input type="text"
+                                wire:model.live.debounce.500ms="name"
+                                placeholder="Masukkan nama mata kuliah..."
+                                class="dark:bg-gray-800 h-12 w-full rounded-xl border {{ $errors->has('name') ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500' }} bg-transparent px-4 text-sm text-gray-800 dark:text-white transition shadow-sm" />
+                            @error('name') <span class="text-xs text-red-500 mt-2 block font-medium italic">⚠️ {{ $message }}</span> @enderror
+                        </div>
+
+                        {{-- Input SKS --}}
+                        <div>
+                            <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider text-xs">Bobot SKS (1-6)</label>
+                            <input type="number"
+                                wire:model.live="credits"
+                                min="1" max="6"
+                                class="dark:bg-gray-800 h-12 w-full rounded-xl border {{ $errors->has('credits') ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500' }} bg-transparent px-4 text-sm text-gray-800 dark:text-white transition shadow-sm" />
+                            @error('credits') <span class="text-xs text-red-500 mt-2 block font-medium italic">⚠️ {{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="flex items-center gap-4 mt-8 justify-end">
+                            <button @click="open = false" type="button"
+                                class="px-6 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-bold text-gray-700 dark:text-gray-400 hover:bg-gray-50 transition">
+                                Cancel
+                            </button>
+                            <button type="submit"
+                                wire:loading.attr="disabled"
+                                class="px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-sm font-bold text-white shadow-lg shadow-indigo-200 dark:shadow-none transition active:scale-95 disabled:opacity-50">
+                                <span wire:loading.remove wire:target="store">{{ $courseId ? 'Update Course' : 'Create Course' }}</span>
+                                <span wire:loading wire:target="store">Processing...</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-
-            <form wire:submit.prevent="store" class="flex flex-col gap-6">
-                <div>
-                    <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Course Code</label>
-                    <input type="text" wire:model="code" placeholder="Misal: IF101"
-                        class="dark:bg-dark-900 h-12 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 focus:border-brand-300 dark:border-gray-700 dark:text-white/90 uppercase transition" />
-                    @error('code') <span class="text-xs text-red-500 mt-2 block font-medium italic">{{ $message }}</span> @enderror
-                </div>
-
-                <div>
-                    <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Course Name</label>
-                    <input type="text" wire:model="name" placeholder="Nama mata kuliah..."
-                        class="dark:bg-dark-900 h-12 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 focus:border-brand-300 dark:border-gray-700 dark:text-white/90 transition" />
-                    @error('name') <span class="text-xs text-red-500 mt-2 block font-medium italic">{{ $message }}</span> @enderror
-                </div>
-
-                <div>
-                    <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Credits (SKS)</label>
-                    <input type="number" wire:model.number="credits" min="1" placeholder="1-6"
-                        class="dark:bg-dark-900 h-12 w-full rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 focus:border-brand-300 dark:border-gray-700 dark:text-white/90 transition" />
-                    @error('credits') <span class="text-xs text-red-500 mt-2 block font-medium italic">{{ $message }}</span> @enderror
-                </div>
-
-                <div class="flex items-center gap-3 mt-4 justify-end">
-                    <button @click="open = false" type="button"
-                        class="px-6 py-3 rounded-xl border border-gray-300 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 transition">
-                        Cancel
-                    </button>
-                    <button type="submit"
-                        class="px-8 py-3 rounded-xl bg-brand-500 text-sm font-bold text-white hover:bg-brand-600 shadow-lg transition">
-                        {{ $courseId ? 'Update Course' : 'Create Course' }}
-                    </button>
-                </div>
-            </form>
         </div>
-    </div>
+    </template>
 </div>

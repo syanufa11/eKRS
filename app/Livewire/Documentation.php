@@ -2,51 +2,76 @@
 
 namespace App\Livewire;
 
+use Livewire\Attributes\Url;
 use Livewire\Component;
-use Livewire\Attributes\Title;
 
-#[Title('Dokumentasi Teknis')]
 class Documentation extends Component
 {
-    public string $activeTab = 'setup';
+    /**
+     * Disimpan di URL query string (?section=ts01) agar
+     * section tetap terbuka saat halaman di-refresh atau
+     * link dibagikan ke orang lain.
+     */
+    #[Url(as: 'section', keep: true)]
+    public string $activeSection = 'overview';
 
-    // Daftar Task sesuai instruksi [cite: 168, 282]
-    public array $tasks = [
-        'setup' => [
-            'title' => 'Setup & Seeding',
-            'icon' => 'fa-tools',
-            'items' => ['TS-01']
+    /**
+     * Struktur navigasi sidebar.
+     */
+    public array $nav = [
+        [
+            'group' => 'Pengantar',
+            'icon'  => 'fa-book-open',
+            'items' => [
+                ['key' => 'overview', 'label' => 'Ringkasan Teknis'],
+                ['key' => 'stack',    'label' => 'Tech Stack'],
+            ],
         ],
-        'crud' => [
-            'title' => 'CRUD & Transaksi',
-            'icon' => 'fa-database',
-            'items' => ['TS-02', 'TS-03', 'TS-04', 'TS-11']
+        [
+            'group' => 'Panduan Fitur',
+            'icon'  => 'fa-rocket',
+            'items' => [
+                ['key' => 'crud',       'label' => 'CRUD & Form'],
+                ['key' => 'filter',     'label' => 'Filter & Pencarian'],
+                ['key' => 'export',     'label' => 'Export CSV'],
+                ['key' => 'softdelete', 'label' => 'Soft Deletes & Trash'],
+            ],
         ],
-        'server-side' => [
-            'title' => 'Server-Side Logic',
-            'icon' => 'fa-server',
-            'items' => ['TS-05', 'TS-06', 'TS-07', 'TS-08', 'TS-09', 'TS-10']
+        [
+            'group' => 'Skenario Pengujian',
+            'icon'  => 'fa-flask',
+            'items' => [
+                ['key' => 'ts01',   'label' => 'TS-01 · Setup & Seed'],
+                ['key' => 'ts02',   'label' => 'TS-02 · Atomic Transaction'],
+                ['key' => 'ts0304', 'label' => 'TS-03 & 04 · Validasi'],
+                ['key' => 'ts05',   'label' => 'TS-05 · Pagination'],
+                ['key' => 'ts06',   'label' => 'TS-06 · Sorting'],
+                ['key' => 'ts07',   'label' => 'TS-07 · Quick Filter'],
+                ['key' => 'ts08',   'label' => 'TS-08 · Live Search'],
+                ['key' => 'ts0910', 'label' => 'TS-09 & 10 · Advanced Filter'],
+                ['key' => 'ts11',   'label' => 'TS-11 · Update Data'],
+                ['key' => 'ts12',   'label' => 'TS-12 · Soft Deletes'],
+                ['key' => 'ts13',   'label' => 'TS-13 · Export 5jt Data'],
+            ],
         ],
-        'export' => [
-            'title' => 'Export & Delete',
-            'icon' => 'fa-file-export',
-            'items' => ['TS-12', 'TS-13']
+        [
+            'group' => 'Laporan',
+            'icon'  => 'fa-file-lines',
+            'items' => [
+                ['key' => 'report', 'label' => 'Laporan Teknis'],
+            ],
         ],
-        'pdf' => [
-            'title' => 'Instruksi PDF',
-            'icon' => 'fa-file-pdf',
-            'items' => []
-        ]
     ];
 
-    public function setTab($tab)
+    public function setSection(string $key): void
     {
-        $this->activeTab = $tab;
+        if (array_key_exists($key, array_column(array_merge(...array_column($this->nav, 'items')), null, 'key'))) {
+            $this->activeSection = $key;
+        }
     }
 
     public function render()
     {
-        return view('livewire.documentation')
-            ->layout('layouts.app');
+        return view('livewire.documentation')->extends('layouts.fullscreen-layout');
     }
 }

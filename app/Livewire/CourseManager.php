@@ -14,129 +14,72 @@ use App\Livewire\Traits\WithBreadcrumbs;
 class CourseManager extends Component
 {
     use WithPagination;
-    
     use WithBreadcrumbs;
+
+    // Properti Filter & Sort
+    #[Url(history: true)]
+    public $search = '';
+    #[Url(history: true)]
+    public $sortBy = 'code';
+    #[Url(history: true)]
+    public $sortDir = 'asc';
+    #[Url]
+    public $filterCredits = '';
+
+    // Properti Form (Binding langsung ke wire:model)
+    public $courseId; // Kosong jika Create, Terisi jika Update
+    public $code, $name, $credits;
+
+    public $isOpen = false; // Kontrol modal
+    public $selectedRows = [];
+    public $selectAll = false;
 
     public function mount()
     {
         $this->breadcrumb('Course Management');
     }
 
-    // Properti Filter & Sort (Disinkronkan ke URL)
-    #[Url(history: true)]
-    public $search = '';
-
-    #[Url(history: true)]
-    public $sortBy = 'code';
-
-    #[Url(history: true)]
-    public $sortDir = 'asc';
-
-    #[Url]
-    public $filterCredits = '';
-
-    // Properti Form
-    public $courseId, $code, $name, $credits;
-    public $isOpen = false;
-    public $isOtherCredits = false;
-
-    // Properti Bulk Selection
-    public $selectedRows = [];
-    public $selectAll = false;
-
-    public function updatedSelectAll($value)
-    {
-        if ($value) {
-            $this->selectedRows = $this->getCoursesQuery()
-                ->orderBy($this->sortBy, $this->sortDir)
-                ->paginate(10)
-                ->pluck('id')
-                ->map(fn($id) => (string) $id)
-                ->toArray();
-        } else {
-            $this->selectedRows = [];
-        }
-    }
-
-    public function updatedSearch()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingPage()
-    {
-        $this->selectedRows = [];
-        $this->selectAll    = false;
-    }
-
-    public function setSort($field)
-    {
-        if ($this->sortBy === $field) {
-            $this->sortDir = $this->sortDir === 'asc' ? 'desc' : 'asc';
-        } else {
-            $this->sortBy = $field;
-            $this->sortDir = 'asc';
-        }
-    }
-
-    public function getCoursesQuery()
-    {
-        return Course::query()
-            ->when($this->search, function ($q) {
-                // PostgreSQL: Gunakan ILIKE untuk pencarian tanpa memperdulikan besar/kecil huruf
-                return $q->where(function ($subQuery) {
-                    $subQuery->where('name', 'ILIKE', '%' . $this->search . '%')
-                        ->orWhere('code', 'ILIKE', '%' . $this->search . '%');
-                });
-            })
-            ->when($this->filterCredits, fn($q) => $q->where('credits', $this->filterCredits));
-    }
-
-
-    public function render()
-    {
-        return view('livewire.course-manager', [
-            'courses' => $this->getCoursesQuery()
-                ->orderBy($this->sortBy, $this->sortDir)
-                ->paginate(10),
-            'trashedCount' => \App\Models\Course::onlyTrashed()->count(),
-        ])
-            ->layout('layouts.app', [
-                'breadcrumbs' => $this->breadcrumbs,
-            ])
-            ->title('Course Management');
-    }
-
-
-
-    // ─── Modal Logic ────────────────────────────────────────────────────────────
-
+    // --- Create Logic ---
     public function create()
     {
         $this->resetInput();
-        $this->isOpen = true;
+        $this->isOpen = true; // Buka modal
     }
 
-    public function edit(Course $course)
+    // --- Update Logic ---
+    public function edit($id)
     {
+        $this->resetInput();
+        $course = Course::findOrFail($id);
+
         $this->courseId = $course->id;
         $this->code     = $course->code;
         $this->name     = $course->name;
         $this->credits  = $course->credits;
-        $this->isOpen   = true;
+
+        $this->isOpen = true; // Buka modal dengan data terisi
     }
 
+    // --- Action Simpan (Create & Update) ---
     public function store()
     {
+        // Validasi
+        $validated = $this->validate([
+            'code'    => [
+                'required',
+                // Regex diperbarui: 2-3 huruf di depan, sisanya angka, total maksimal 6
+                // Contoh: CS101 (5), ENG202 (6)
+                'regex:/^[a-zA-Z]{2,3}[0-9]{1,4}$/',
+                'max:6', // Memastikan panjang string maksimal 6
+                Rule::unique('courses', 'code')->ignore($this->courseId)->whereNull('deleted_at')
+            ],
+            'name'    => 'required|min:3|max:120',
+            'credits' => 'required|integer|min:1|max:10',
+        ]);
+
         DB::beginTransaction();
-
         try {
-            $validated = $this->validate([
-                'code'    => ['required', 'regex:/^[a-zA-Z]{2,4}[0-9]{3}$/', Rule::unique('courses', 'code')->ignore($this->courseId)->whereNull('deleted_at')],
-                'name'    => 'required|min:3|max:120',
-                'credits' => 'required|integer|min:1|max:10',
-            ]);
-
+            // Jika courseId ada, maka Update. Jika tidak, maka Create.
             Course::updateOrCreate(
                 ['id' => $this->courseId],
                 [
@@ -148,88 +91,63 @@ class CourseManager extends Component
 
             DB::commit();
 
-            $this->isOpen = false;
-            $this->dispatch('notify', message: $this->courseId ? 'Data diperbarui!' : 'Data ditambahkan!', type: 'success');
-            $this->resetInput();
+            $this->dispatch(
+                'notify',
+                message: $this->courseId ? 'Mata kuliah berhasil diperbarui!' : 'Mata kuliah berhasil ditambahkan!',
+                type: 'success'
+            );
+
+            $this->closeModal();
         } catch (\Throwable $e) {
             DB::rollBack();
-
             report($e);
-            $this->dispatch('notify', message: 'Gagal menyimpan data!', type: 'error');
+            $this->dispatch('notify', message: 'Terjadi kesalahan sistem!', type: 'error');
         }
     }
 
-
-    // ─── Single Delete (Soft) ────────────────────────────────────────────────────
-
-    public function confirmDelete($id)
+    protected function messages()
     {
-        $this->dispatch('confirm-delete', id: $id, message: 'Data akan dipindahkan ke Sampah.');
+        return [
+            'code.required' => 'Kode mata kuliah wajib diisi.',
+            'code.regex'    => 'Format kode tidak valid (Gunakan 2-3 huruf di awal, sisanya angka).',
+            'code.max'      => 'Kode mata kuliah tidak boleh lebih dari 6 karakter.',
+            'code.unique'   => 'Kode mata kuliah ini sudah terdaftar.',
+
+            'name.required' => 'Nama mata kuliah wajib diisi.',
+            'name.min'      => 'Nama mata kuliah minimal 3 karakter.',
+            'name.max'      => 'Nama mata kuliah terlalu panjang (maksimal 120 karakter).',
+
+            'credits.required' => 'Jumlah SKS wajib diisi.',
+            'credits.integer'  => 'SKS harus berupa angka.',
+            'credits.min'      => 'SKS minimal adalah 1.',
+            'credits.max'      => 'SKS maksimal adalah 10.',
+        ];
     }
 
-    // ─── Bulk Delete (Soft) ──────────────────────────────────────────────────────
-
-    public function confirmBulkDelete()
+    public function updated($propertyName)
     {
-        $count = count($this->selectedRows);
-        $this->dispatch(
-            'confirm-delete',
-            id: null,
-            message: "Pindahkan {$count} data yang dipilih ke Sampah?"
-        );
+        $this->validateOnly($propertyName, [
+            'code'    => [
+                'required',
+                'regex:/^[a-zA-Z]{2,3}[0-9]{1,4}$/',
+                'max:6',
+                Rule::unique('courses', 'code')->ignore($this->courseId)->whereNull('deleted_at')
+            ],
+            'name'    => 'required|min:3|max:120',
+            'credits' => 'required|integer|min:1|max:10',
+        ]);
     }
 
-    // ─── Executed after SweetAlert confirms ─────────────────────────────────────
-
-    #[On('delete-confirmed')]
-    public function delete($id = null)
+    public function closeModal()
     {
-        DB::beginTransaction();
-
-        try {
-            if ($id) {
-                Course::destroy($id);
-                $msg = 'Data dipindahkan ke Sampah!';
-            } else {
-                Course::whereIn('id', $this->selectedRows)->delete();
-                $this->selectedRows = [];
-                $this->selectAll = false;
-                $msg = 'Semua data terpilih dipindahkan ke Sampah!';
-            }
-
-            DB::commit();
-
-            $this->dispatch('notify', message: $msg, type: 'success');
-        } catch (\Throwable $e) {
-            DB::rollBack();
-
-            report($e);
-            $this->dispatch('notify', message: 'Gagal menghapus data!', type: 'error');
-        }
-    }
-
-    // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-    public function updatedCredits($value)
-    {
-        if ($value === 'other') {
-            $this->isOtherCredits = true;
-            $this->credits = null;
-        } else {
-            $this->isOtherCredits = false;
-        }
+        $this->isOpen = false;
+        $this->resetInput();
     }
 
     private function resetInput()
     {
         $this->reset(['courseId', 'code', 'name', 'credits']);
         $this->resetErrorBag();
-    }
-
-    public function resetFilters()
-    {
-        $this->reset(['search', 'filterCredits', 'sortBy', 'sortDir']);
-        $this->resetPage();
     }
 
     // =========================================================================
@@ -270,11 +188,69 @@ class CourseManager extends Component
         }
     }
 
+    public function getCoursesQuery()
+    {
+        return Course::query()
+            ->when($this->search, function ($q) {
+                return $q->where(function ($subQuery) {
+                    $subQuery->where('name', 'ILIKE', '%' . $this->search . '%')
+                        ->orWhere('code', 'ILIKE', '%' . $this->search . '%');
+                });
+            })
+            ->when($this->filterCredits, fn($q) => $q->where('credits', $this->filterCredits));
+    }
 
-    // ─── Reset Selection ─────────────────────────────────────────────────────────
+    public function render()
+    {
+        return view('livewire.course-manager', [
+            'courses' => $this->getCoursesQuery()
+                ->orderBy($this->sortBy, $this->sortDir)
+                ->paginate(10),
+            'trashedCount' => Course::onlyTrashed()->count(),
+        ])
+            ->layout('layouts.app', ['breadcrumbs' => $this->breadcrumbs])
+            ->title('Course Management');
+    }
+
+    public function resetFilters()
+    {
+        $this->reset(['search', 'sortBy', 'sortDir', 'filterCredits']);
+        $this->resetPage(); // Penting agar kembali ke halaman 1 setelah filter dihapus
+    }
+
+    public function setSort($column)
+    {
+        if ($this->sortBy === $column) {
+            $this->sortDir = ($this->sortDir === 'asc') ? 'desc' : 'asc';
+        } else {
+            $this->sortBy = $column;
+            $this->sortDir = 'asc';
+        }
+    }
+
+    public function updatedSelectAll($value)
+    {
+        if ($value) {
+            // Ambil semua ID mata kuliah yang sedang tampil di halaman saat ini
+            $this->selectedRows = $this->getCoursesQuery()
+                ->orderBy($this->sortBy, $this->sortDir)
+                ->paginate(10)
+                ->pluck('id')
+                ->map(fn($id) => (string) $id)
+                ->toArray();
+        } else {
+            $this->resetSelection();
+        }
+    }
+
     public function resetSelection()
     {
-        $this->selectedRows = [];
-        $this->selectAll = false;
+        $this->reset(['selectedRows', 'selectAll']);
+    }
+
+    // Tambahkan ini agar saat pindah halaman, pilihan checkbox direset (opsional)
+    public function updatedPage()
+    {
+        $this->resetSelection();
     }
 }

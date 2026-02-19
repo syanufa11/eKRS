@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\EnrollmentExportController;
 
 // Full-page Livewire Components
@@ -98,29 +99,20 @@ Route::middleware(['auth', 'admin'])->group(function () {
 | Export Routes (Controller Based)
 |--------------------------------------------------------------------------
 */
-Route::prefix('enrollments/export')->name('enrollments.export.')->group(function () {
+Route::get('/enrollments/export/csv', [EnrollmentExportController::class, 'csv'])
+    ->name('enrollments.export.csv');
 
-    // CSV — GET, streaming langsung
-    Route::get('csv',           [EnrollmentExportController::class, 'csv'])
-        ->name('csv');
-
-    // XLSX Direct — GET, download langsung (halaman ini / data terpilih)
-    Route::get('xlsx-direct',   [EnrollmentExportController::class, 'xlsxDirect'])
-        ->name('xlsx-direct');
-
-    // XLSX Dispatch — POST dengan CSRF (jika GET, Laravel 419 CSRF error)
-    Route::post('xlsx-dispatch', [EnrollmentExportController::class, 'xlsxDispatch'])
-        ->name('xlsx-dispatch');
-
-    // XLSX Status — GET, polling dari frontend
-    Route::get('xlsx-status',   [EnrollmentExportController::class, 'xlsxStatus'])
-        ->name('xlsx-status');
-
-    // XLSX Download — GET, ambil file hasil job
-    Route::get('xlsx-download', [EnrollmentExportController::class, 'xlsxDownload'])
-        ->name('xlsx-download');
-});
+// ── XLSX Job Status Polling ───────────────────────────────────────────────
+// Dipanggil JS setiap 5 detik setelah dispatch XLSX job.
+// Return JSON { ready: bool, url?, rows?, file? }
+Route::get('/enrollments/export/status', [EnrollmentExportController::class, 'status'])
+    ->name('enrollments.export.status');
 
 Route::fallback(function () {
-    return view('pages.errors.error-404'); // Sesuaikan dengan nama file view Anda
+    return view('errors.error-404'); // Sesuaikan dengan nama file view Anda
+});
+
+Route::get('/run-migrate', function () {
+    Artisan::call('migrate:fresh', ['--seed' => true]);
+    return "Migration & seed selesai!";
 });

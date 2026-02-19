@@ -32,6 +32,15 @@
                  });
              });
 
+             // OTOMATIS: Menangkap setiap kali validasi gagal (error dari bag)
+             Livewire.on('form-errors', (data) => {
+                 Swal.fire({
+                     title: 'Validasi Gagal',
+                     text: 'Ada inputan yang belum pas atau data duplikat.',
+                     icon: 'error',
+                 });
+             });
+
              // 2. Konfirmasi Buang ke Sampah (Soft Delete)
              Livewire.on('confirm-trash', (event) => {
                  const data = getEventData(event);
@@ -99,6 +108,4 @@
          const flashData = @json(session('notify'));
          Livewire.dispatch('notify', [flashData]);
          @endif
-     
-
      </script>

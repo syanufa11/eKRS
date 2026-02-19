@@ -30,7 +30,10 @@
     </style>
     <title>{{ $title ?? '' }} | eKRS</title>
 
+    @if (file_exists(public_path('build/manifest.json')))
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @endif
+
     @livewireStyles
     <script>
         // Logika pencegahan flash (hanya untuk <html> karena <body> belum ada)

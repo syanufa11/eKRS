@@ -2,32 +2,21 @@
 
 namespace App\Livewire;
 
-use App\Models\Student;
-use App\Models\Course;
-use App\Models\Enrollment;
-use App\Jobs\ExportEnrollmentsJob;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Validate;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
-
+use App\Models\Student;
+use App\Models\Course;
+use App\Models\Enrollment;
+use App\Jobs\ExportEnrollmentsJob;
 use App\Livewire\Traits\WithBreadcrumbs;
 
 class EnrollmentManager extends Component
 {
-    use WithBreadcrumbs;
-
-    public function mount()
-    {
-        $this->breadcrumb('Enrollment Management');
-        // atau:
-        // $this->breadcrumbMulti('Academic', 'Enrollment Management');
-    }
-
-    use WithPagination;
+    use WithPagination, WithBreadcrumbs;
 
     #[Url(history: true)]
     public $search = '';
@@ -50,109 +39,71 @@ class EnrollmentManager extends Component
     public $selectedId;
     public $selectedEnrollment;
 
-    public $student_nim, $student_name, $student_email;
-    public $course_id, $academic_year = '2025/2026', $semester = '1', $status = 'DRAFT';
+    #[Url(history: true)]
+    public $perPage = 15; // Properti baru untuk limit halaman
+
+    // ─── Validasi menggunakan Atribut Livewire 3 ───────────────────────────
+    #[Validate('required|numeric|digits_between:8,12')]
+    public $student_nim;
+
+    #[Validate('required|string|min:3|max:100')]
+    public $student_name;
+
+    #[Validate('required|email|max:150')]
+    public $student_email;
+
+    #[Validate('required|exists:courses,id')]
+    public $course_id;
+
+    #[Validate(['required', 'regex:/^\d{4}\/\d{4}$/'])]
+    public $academic_year = '2025/2026';
+
+    #[Validate('required|in:1,2')]
+    public $semester = '1';
+
+    #[Validate('required|in:DRAFT,SUBMITTED,APPROVED,REJECTED')]
+    public $status = 'DRAFT';
 
     public $selectedRows = [];
     public $selectAll    = false;
-
     public $exportJobDispatched = false;
 
-    private const ALLOWED_SORT_COLUMNS = [
-        'enrollments.id',
-        'enrollments.created_at',
-        'enrollments.academic_year',
-        'students.nim',
-        'students.name',
-        'courses.code',
-    ];
+    public function mount()
+    {
+        $this->breadcrumb('Enrollment Management');
+    }
 
-    #[Url(history: true)]
-    public int $perPage = 15;
-
-    // ─── Pagination ────────────────────────────────────────────────────────────
+    // ─── Pagination & Selection ────────────────────────────────────────────────
     public function updatingPage(): void
     {
         $this->selectedRows = [];
         $this->selectAll    = false;
     }
 
-    public function updatingPerPage(): void
+    public function updatedPerPage()
     {
         $this->resetPage();
-        $this->selectedRows = [];
-        $this->selectAll    = false;
     }
 
     public function updatedSelectAll($value): void
     {
         if ($value) {
-            $q = $this->applyQuery()
+            $this->selectedRows = $this->applyQuery()
                 ->select('enrollments.id')
-                ->orderBy($this->sortBy, $this->sortDir);
-
-            // Jika perPage = 0 (Semua), ambil semua ID; jika tidak, hanya halaman aktif
-            $this->selectedRows = ($this->perPage === 0)
-                ? $q->pluck('enrollments.id')->map(fn($id) => (string) $id)->toArray()
-                : $q->paginate($this->perPage)->pluck('id')->map(fn($id) => (string) $id)->toArray();
+                ->orderBy($this->sortBy, $this->sortDir)
+                ->paginate(15)
+                ->pluck('id')
+                ->map(fn($id) => (string) $id)
+                ->toArray();
         } else {
             $this->selectedRows = [];
         }
     }
 
-    // ─── Validation ────────────────────────────────────────────────────────────
-    protected function rules(): array
+    // ─── Validation Helper (Dipanggil dari Blade/Alpine) ───────────────────────
+    public function validateField($field): void
     {
-        return [
-            'student_nim'   => 'required|numeric|digits_between:8,12',
-            'student_name'  => 'required|string|min:3|max:100',
-            'student_email' => 'required|email|max:150',
-            'course_id'     => 'required|exists:courses,id',
-            'academic_year' => ['required', 'regex:/^\d{4}\/\d{4}$/'],
-            'semester'      => 'required|in:1,2',
-            'status'        => 'required|in:DRAFT,SUBMITTED,APPROVED,REJECTED',
-        ];
-    }
-
-    protected function messages(): array
-    {
-        return [
-            'student_nim.required'        => 'NIM wajib diisi.',
-            'student_nim.numeric'         => 'NIM hanya boleh berisi angka.',
-            'student_nim.digits_between'  => 'NIM harus terdiri dari 8 hingga 12 digit.',
-            'student_name.required'       => 'Nama mahasiswa wajib diisi.',
-            'student_name.string'         => 'Nama mahasiswa harus berupa teks.',
-            'student_name.min'            => 'Nama mahasiswa minimal 3 karakter.',
-            'student_name.max'            => 'Nama mahasiswa maksimal 100 karakter.',
-            'student_email.required'      => 'Email mahasiswa wajib diisi.',
-            'student_email.email'         => 'Format email tidak valid.',
-            'student_email.max'           => 'Email maksimal 150 karakter.',
-            'course_id.required'          => 'Mata kuliah wajib dipilih.',
-            'course_id.exists'            => 'Mata kuliah yang dipilih tidak ditemukan.',
-            'academic_year.required'      => 'Tahun ajaran wajib diisi.',
-            'academic_year.regex'         => 'Format tahun ajaran harus seperti 2025/2026.',
-            'semester.required'           => 'Semester wajib dipilih.',
-            'semester.in'                 => 'Semester hanya boleh Ganjil (1) atau Genap (2).',
-            'status.required'             => 'Status wajib dipilih.',
-            'status.in'                   => 'Status tidak valid.',
-        ];
-    }
-
-    public function updated($propertyName): void
-    {
-        $this->validateOnly($propertyName);
-    }
-
-    /**
-     * Public wrapper untuk validateOnly — dipanggil dari Alpine via @this.call()
-     * di dalam x-teleport dimana wire:model tidak bisa bekerja.
-     */
-    public function validateField(string $field): void
-    {
-        $allowed = ['student_nim', 'student_name', 'student_email', 'course_id', 'academic_year', 'semester', 'status'];
-        if (in_array($field, $allowed)) {
-            $this->validateOnly($field);
-        }
+        $this->validateOnly($field);
     }
 
     // ─── Filter reactivity ─────────────────────────────────────────────────────
@@ -179,21 +130,8 @@ class EnrollmentManager extends Component
 
     public function resetFilters(): void
     {
-        $this->search         = '';
-        $this->filterStatus   = '';
-        $this->filterSemester = '';
-        $this->filterYear     = '';
-        $this->filterCourse   = '';
-        $this->filterOperator = 'AND';
-        $this->sortBy         = 'enrollments.created_at';
-        $this->sortDir        = 'desc';
-        $this->perPage        = 15;
-        $this->selectedRows   = [];
-        $this->selectAll      = false;
-
-        session()->forget(['export_token', 'csv_export_token']);
+        $this->reset(['search', 'filterStatus', 'filterSemester', 'filterYear', 'filterCourse']);
         $this->resetPage();
-        $this->dispatch('notify', message: 'Data telah di-reset ke kondisi awal.', type: 'info');
     }
 
     // ─── Form helpers ──────────────────────────────────────────────────────────
@@ -212,6 +150,7 @@ class EnrollmentManager extends Component
         ]);
         $this->academic_year = '2025/2026';
         $this->semester      = '1';
+        $this->status        = 'DRAFT';
         $this->resetValidation();
     }
 
@@ -311,99 +250,77 @@ class EnrollmentManager extends Component
     // ─── Sorting ───────────────────────────────────────────────────────────────
     public function setSort($field): void
     {
-        $actualField = in_array($field, self::ALLOWED_SORT_COLUMNS, true)
-            ? $field : 'enrollments.created_at';
-
-        if ($this->sortBy === $actualField) {
+        if ($this->sortBy === $field) {
             $this->sortDir = $this->sortDir === 'asc' ? 'desc' : 'asc';
         } else {
-            $this->sortBy  = $actualField;
+            $this->sortBy  = $field;
             $this->sortDir = 'asc';
         }
     }
 
-    /**
-     * Core Query Builder — dioptimalkan untuk PostgreSQL.
-     */
+    // ─── Base query builder ────────────────────────────────────────────────────
+    // ─── Base query builder ────────────────────────────────────────────────────
     private function applyQuery()
     {
-        $query = Enrollment::query()
+        return Enrollment::query()
             ->join('students', 'enrollments.student_id', '=', 'students.id')
-            ->join('courses', 'enrollments.course_id', '=', 'courses.id');
+            ->join('courses', 'enrollments.course_id', '=', 'courses.id')
+            // Scope pencarian utama
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $search = trim($this->search);
+                    // PostgreSQL menggunakan ILIKE untuk case-insensitive
+                    $q->where('students.nim', 'ilike', $search . '%')
+                        ->orWhere('students.name', 'ilike', '%' . $search . '%')
+                        ->orWhere('courses.code', 'ilike', $search . '%')
+                        ->orWhere('courses.name', 'ilike', '%' . $search . '%');
+                });
+            })
+            // Scope filter tambahan (Status, Semester, dll)
+            ->where(function ($query) {
+                $isOr = $this->filterOperator === 'OR';
+                $method = $isOr ? 'orWhere' : 'where';
 
-        $query->when($this->search, function ($q) {
-            $searchTerm = trim($this->search);
-            $q->where(function ($s) use ($searchTerm) {
-                $s->where('students.nim', 'ilike', $searchTerm . '%')
-                    ->orWhere('students.name', 'ilike', '%' . $searchTerm . '%')
-                    ->orWhere('courses.code', 'ilike', $searchTerm . '%')
-                    ->orWhere('courses.name', 'ilike', '%' . $searchTerm . '%');
-            });
-        });
-
-        $query->where(function ($q) {
-            $isOr   = $this->filterOperator === 'OR';
-            $method = $isOr ? 'orWhere' : 'where';
-
-            if ($this->filterStatus)   $q->where('enrollments.status', $this->filterStatus);
-            if ($this->filterYear)     $q->$method('enrollments.academic_year', $this->filterYear);
-            if ($this->filterCourse)   $q->$method('courses.code', $this->filterCourse);
-            if ($this->filterSemester) {
-                $semesterValue = $this->filterSemester === 'GANJIL' ? 1 : 2;
-                $q->$method('enrollments.semester', $semesterValue);
+            if ($this->filterStatus) {
+                $query->$method('enrollments.status', $this->filterStatus);
             }
-        });
 
-        return $query;
+            if ($this->filterYear) {
+                $query->$method('enrollments.academic_year', $this->filterYear);
+            }
+
+            if ($this->filterCourse) {
+                $query->$method('courses.code', $this->filterCourse);
+            }
+
+            if ($this->filterSemester) {
+                    $val = $this->filterSemester === 'GANJIL' ? '1' : '2';
+                    $query->$method('enrollments.semester', $val);
+                }
+            });
     }
 
     // ─── Render ────────────────────────────────────────────────────────────────
+
     public function render()
     {
-        $baseQuery = $this->applyQuery()
-            ->select([
-                'enrollments.id',
-                'enrollments.student_id',
-                'enrollments.course_id',
-                'enrollments.academic_year',
-                'enrollments.semester',
-                'enrollments.status',
-                'enrollments.created_at',
-                'enrollments.updated_at',
-                'enrollments.deleted_at',
-                'students.nim  as student_nim',
-                'students.name as student_name',
-                'courses.code  as course_code',
-                'courses.name  as course_name',
-            ])
-            ->orderBy($this->sortBy, $this->sortDir);
-
-        if ($this->perPage === 0) {
-            $allItems    = $baseQuery->get();
-            $total       = $allItems->count();
-            $enrollments = new \Illuminate\Pagination\LengthAwarePaginator(
-                $allItems,
-                $total,
-                max($total, 1),
-                1,
-                ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
-            );
-        } else {
-            $enrollments = $baseQuery->paginate($this->perPage);
-        }
-
         return view('livewire.enrollment-manager', [
-            'enrollments'  => $enrollments,
-            'courses_list' => \App\Models\Course::orderBy('code')->get(),
-            'years_list'   => \App\Models\Enrollment::distinct()
-                ->orderBy('academic_year', 'desc')
-                ->pluck('academic_year'),
-            'trashedCount' => \App\Models\Enrollment::onlyTrashed()->count(),
-        ])
-            ->layout('layouts.app', [
-                'breadcrumbs' => $this->breadcrumbs
-            ])
-            ->title('Enrollment Management');
+            'enrollments'  => $this->applyQuery()
+                ->select(
+                    'enrollments.*',
+                    'students.nim  as student_nim',
+                    'students.name as student_name',
+                    'courses.code  as course_code',
+                    'courses.name  as course_name'
+                )
+                ->orderBy($this->sortBy, $this->sortDir)
+                ->paginate($this->perPage), // Gunakan variabel dinamis
+            'courses_list' => Course::orderBy('code')->get(),
+            'years_list'   => Enrollment::distinct()->orderBy('academic_year', 'desc')->pluck('academic_year'),
+            'trashedCount' => Enrollment::onlyTrashed()->count(),
+        ])->layout('layouts.app', [
+            'breadcrumbs' => $this->breadcrumbs
+        ])->title('Enrollment Management');
     }
 
     public function closeModal(): void
@@ -412,111 +329,54 @@ class EnrollmentManager extends Component
         $this->resetValidation();
     }
 
-    // =========================================================================
-    // TS-13: EXPORT 5 JUTA DATA — CSV STREAMING + XLSX ASYNC JOB
-    // =========================================================================
+    // ─── Export Handling ───────────────────────────────────────────────────────
+    // Tambahkan properti untuk loading state
+    public $isExporting = false;
 
     /**
-     * prepareExportCsv()
-     * ─────────────────────────────────────────────────────────────────────────
-     * Simpan snapshot filter ke Cache (bukan session — agar tidak ada session
-     * lock saat controller membaca di request terpisah), lalu dispatch event
-     * JS 'csv-ready' yang memicu browser membuka URL download.
-     *
-     * Download sesungguhnya terjadi di EnrollmentExportController::csv()
-     * via response()->streamDownload() — tidak terbatas ukuran file.
+     * Menyiapkan token ekspor berdasarkan cakupan (scope)
+     * Scope: 'all' (semua filter), 'current_page' (hanya page ini), 'selected' (checkbox)
      */
-    public function prepareExportCsv(string $scope = 'all'): void
-    {
-        try {
-            $filters = $this->buildFilterSnapshot($scope);
-            $token   = \Illuminate\Support\Str::random(40);
-
-            // TTL 5 menit — cukup untuk browser membuka URL download
-            Cache::put("csv_token_{$token}", $filters, now()->addMinutes(5));
-
-            $downloadUrl = route('enrollments.export.csv', ['token' => $token]);
-
-            $this->dispatch('csv-ready', url: $downloadUrl, file: 'enrollments_export.csv');
-        } catch (\Exception $e) {
-            Log::error('[prepareExportCsv] ' . $e->getMessage());
-            $this->dispatch('export-error', message: 'Gagal menyiapkan CSV: ' . $e->getMessage());
-        }
-    }
-
     /**
-     * prepareExportXlsx()
-     * ─────────────────────────────────────────────────────────────────────────
-     * Untuk scope 'all' — proses berjalan di background queue job (ExportEnrollmentsJob).
-     * Simpan filter ke Cache, lalu dispatch event JS 'xlsx-job-ready' yang
-     * memicu frontend mengirim POST ke /enrollments/export/xlsx-dispatch.
-     *
-     * Mengapa POST dan bukan GET?
-     * Laravel melindungi semua route non-GET/non-HEAD dengan verifikasi CSRF.
-     * GET akan kena 419 Page Expired. Frontend harus menyertakan X-CSRF-TOKEN header.
+     * Menyiapkan token ekspor yang adaptif terhadap filter dan scope.
+     * Scope: 'all' (semua filter), 'selected' (halaman/baris terpilih)
      */
-    public function prepareExportXlsx(string $scope = 'all'): void
+    public function prepareExportCsv($scope = 'all'): void
     {
         try {
-            $filters = $this->buildFilterSnapshot($scope);
-            $token   = \Illuminate\Support\Str::random(40);
+            // Ambil snapshot filter saat ini
+            $filters = $this->buildFilterSnapshot();
 
-            // TTL 10 menit — cukup untuk user mengklik dispatch dari frontend
-            Cache::put("xlsx_job_token_{$token}", $filters, now()->addMinutes(10));
+            // Tambahkan konteks pagination dan seleksi
+            $filters['perPage'] = $this->perPage;
 
-            $this->dispatch('xlsx-job-ready', [
-                'token'        => $token,
-                'dispatch_url' => route('enrollments.export.xlsx-dispatch', ['token' => $token]),
-                'status_url'   => route('enrollments.export.xlsx-status'),
-            ]);
-        } catch (\Exception $e) {
-            Log::error('[prepareExportXlsx] ' . $e->getMessage());
-            $this->dispatch('export-error', message: 'Gagal menyiapkan XLSX: ' . $e->getMessage());
-        }
-    }
+            if ($scope === 'selected') {
+                if (empty($this->selectedRows)) {
+                    $this->dispatch('notify', message: 'Pilih data atau baris terlebih dahulu!', type: 'error');
+                    return;
+                }
+                // Kirim ID spesifik yang dicentang
+                $filters['selected_ids'] = $this->selectedRows;
+            }
 
-    /**
-     * exportXlsxDirect()
-     * ─────────────────────────────────────────────────────────────────────────
-     * Untuk scope 'current_page' atau 'selected' — jumlah data terbatas,
-     * download langsung via controller (EnrollmentExportController::xlsxDirect())
-     * tanpa queue. Tetap menggunakan keyset pagination di controller agar
-     * tidak OOM meskipun halaman menampilkan banyak baris.
-     */
-    public function exportXlsxDirect(string $scope = 'all'): void
-    {
-        try {
-            $filters = $this->buildFilterSnapshot($scope);
-            $token   = \Illuminate\Support\Str::random(32);
-
-            Cache::put("xlsx_export_{$token}", [
+            $token = \Illuminate\Support\Str::random(32);
+            session()->put("csv_export_{$token}", [
                 'filters'    => $filters,
                 'expires_at' => now()->addMinutes(10)->timestamp,
-            ], now()->addMinutes(10));
+            ]);
 
-            $downloadUrl = route('enrollments.export.xlsx-direct', ['token' => $token]);
+            $downloadUrl = route('enrollments.export.csv', ['token' => $token]);
+            $fileName    = 'enrollments_' . ($scope === 'selected' ? 'selected_' : 'filtered_') . now()->format('Ymd_His') . '.csv';
 
-            // Gunakan event 'csv-ready' yang sama — frontend hanya perlu trigger download
-            $this->dispatch('csv-ready', url: $downloadUrl, file: 'enrollments_export.zip');
+            $this->dispatch('csv-ready', url: $downloadUrl, file: $fileName);
         } catch (\Exception $e) {
-            Log::error('[exportXlsxDirect] ' . $e->getMessage());
-            $this->dispatch('export-error', message: 'Gagal menyiapkan XLSX: ' . $e->getMessage());
+            $this->dispatch('export-error', message: 'Gagal menyiapkan ekspor: ' . $e->getMessage());
         }
     }
 
-    // ─── Helper: snapshot filter aktif ────────────────────────────────────────
-
-    /**
-     * buildFilterSnapshot()
-     * ─────────────────────────────────────────────────────────────────────────
-     * Kemas semua filter + sorting ke satu array yang dapat disimpan di Cache
-     * dan dibaca oleh controller maupun Job di request/process terpisah.
-     *
-     * @param string $scope  'all' | 'selected' | 'current_page'
-     */
-    private function buildFilterSnapshot(string $scope = 'all'): array
+    private function buildFilterSnapshot(): array
     {
-        $snapshot = [
+        return [
             'search'         => $this->search,
             'filterStatus'   => $this->filterStatus,
             'filterSemester' => $this->filterSemester,
@@ -525,202 +385,60 @@ class EnrollmentManager extends Component
             'filterOperator' => $this->filterOperator,
             'sortBy'         => $this->sortBy,
             'sortDir'        => $this->sortDir,
-            'selected_ids'   => [],
         ];
-
-        if ($scope === 'selected' && count($this->selectedRows) > 0) {
-            // Cast ke int untuk keamanan sebelum disimpan
-            $snapshot['selected_ids'] = array_map('intval', $this->selectedRows);
-        } elseif ($scope === 'current_page') {
-            $query = $this->applyQuery()
-                ->select('enrollments.id')
-                ->orderBy($this->sortBy, $this->sortDir);
-
-            $snapshot['selected_ids'] = ($this->perPage > 0)
-                ? $query->paginate($this->perPage)->pluck('id')->map(fn($id) => (int) $id)->toArray()
-                : $query->pluck('enrollments.id')->map(fn($id) => (int) $id)->toArray();
-        }
-
-        return $snapshot;
     }
 
     /**
-     * buildExportQuery() — static, dipakai controller & Job
-     * ─────────────────────────────────────────────────────────────────────────
-     * Single source of truth untuk query ekspor via Eloquent builder.
-     * Dipakai ketika dibutuhkan Eloquent query (bukan raw PDO).
+     * Membangun query dasar untuk ekspor CSV/XLSX.
+     * Mendukung ekspor berdasarkan filter aktif atau baris yang dipilih secara spesifik.
      */
     public static function buildExportQuery(array $f)
     {
         $query = Enrollment::query()
-            ->toBase()
             ->join('students', 'enrollments.student_id', '=', 'students.id')
-            ->join('courses', 'enrollments.course_id', '=', 'courses.id')
-            ->select([
-                'enrollments.id',
-                'students.nim',
-                'students.name  as student_name',
-                'courses.code   as course_code',
-                'courses.name   as course_name',
-                'enrollments.academic_year',
-                'enrollments.semester',
-                'enrollments.status',
-                'enrollments.created_at',
-            ]);
+            ->join('courses',  'enrollments.course_id',  '=', 'courses.id');
 
+        // 1. Prioritas: ID Terpilih (Bulk Action atau Per Page)
         if (!empty($f['selected_ids'])) {
             $query->whereIn('enrollments.id', $f['selected_ids']);
-
-            if (!empty($f['sortBy'])) {
-                $query->orderBy($f['sortBy'], $f['sortDir'] ?? 'asc');
+        } else {
+            // 2. Filter Pencarian
+            if (!empty($f['search'])) {
+                $search = trim($f['search']);
+                $query->where(function ($q) use ($search) {
+                    $q->where('students.nim', 'ilike', $search . '%')
+                        ->orWhere('students.name', 'ilike', '%' . $search . '%')
+                        ->orWhere('courses.code', 'ilike', $search . '%')
+                        ->orWhere('courses.name', 'ilike', '%' . $search . '%');
+                });
             }
-            return $query;
-        }
 
-        if (!empty($f['search'])) {
-            $search = $f['search'];
-            $query->where(function ($q) use ($search) {
-                $q->where('students.nim', 'ilike', "$search%")
-                    ->orWhere('students.name', 'ilike', "%$search%")
-                    ->orWhere('courses.code', 'ilike', "$search%")
-                    ->orWhere('courses.name', 'ilike', "%$search%");
+            // 3. Filter Dropdown (Status, Tahun, Semester)
+            $query->where(function ($q) use ($f) {
+                $isOr = ($f['filterOperator'] ?? 'AND') === 'OR';
+                $method = $isOr ? 'orWhere' : 'where';
+
+                if (!empty($f['filterStatus']))   $q->$method('enrollments.status', $f['filterStatus']);
+                if (!empty($f['filterYear']))     $q->$method('enrollments.academic_year', $f['filterYear']);
+                if (!empty($f['filterCourse']))   $q->$method('courses.code', $f['filterCourse']);
+                if (!empty($f['filterSemester'])) {
+                    $val = $f['filterSemester'] === 'GANJIL' ? '1' : '2';
+                    $q->$method('enrollments.semester', $val);
+                }
             });
         }
 
-        $query->where(function ($q) use ($f) {
-            $isOr   = ($f['filterOperator'] ?? 'AND') === 'OR';
-            $method = $isOr ? 'orWhere' : 'where';
-
-            if (!empty($f['filterStatus'])) {
-                $q->where('enrollments.status', $f['filterStatus']);
-            }
-            if (!empty($f['filterYear'])) {
-                $q->$method('enrollments.academic_year', $f['filterYear']);
-            }
-            if (!empty($f['filterCourse'])) {
-                $q->$method('courses.code', $f['filterCourse']);
-            }
-            if (!empty($f['filterSemester'])) {
-                $val = ($f['filterSemester'] === 'GANJIL') ? 1 : 2;
-                $q->$method('enrollments.semester', $val);
-            }
-        });
-
-        if (!empty($f['sortBy'])) {
-            $query->orderBy($f['sortBy'], $f['sortDir'] ?? 'desc');
-        } else {
-            $query->orderBy('enrollments.created_at', 'desc');
-        }
-
-        return $query;
-    }
-
-    /**
-     * buildRawWhereClause()
-     * ─────────────────────────────────────────────────────────────────────────
-     * Menghasilkan SQL WHERE clause + bindings array dari filter snapshot.
-     * Dipakai oleh EnrollmentExportController dan ExportEnrollmentsJob
-     * untuk raw PDO query dengan positional binding ($1, $2, ...).
-     *
-     * Return: [$whereSql, $bindings]
-     *   $whereSql  = string "WHERE ..." atau "" jika tidak ada filter
-     *   $bindings  = array nilai untuk prepared statement (positional: $1, $2, ...)
-     *
-     * PENTING:
-     *  - selected_ids di-handle di level controller/job secara terpisah (? placeholder)
-     *  - Method ini selalu menambahkan e.deleted_at IS NULL sebagai base condition
-     */
-    public static function buildRawWhereClause(array $f): array
-    {
-        $conditions = [];
-        $bindings   = [];
-
-        // Base condition — pastikan data ter-soft-delete tidak ikut di export
-        $conditions[] = 'e.deleted_at IS NULL';
-
-        if (!empty($f['search'])) {
-            $val = trim($f['search']);
-            $b1  = count($bindings) + 1;
-            $b2  = count($bindings) + 2;
-            $conditions[] = "(s.nim ILIKE \${$b1} OR s.name ILIKE \${$b2})";
-            $bindings[]   = $val . '%';
-            $bindings[]   = '%' . $val . '%';
-        }
-
-        // Filter-filter lain (status, year, course, semester)
-        $filterMap = [
-            'filterStatus'   => 'e.status',
-            'filterYear'     => 'e.academic_year',
-            'filterCourse'   => 'c.code',
-            'filterSemester' => 'e.semester',
-        ];
-
-        $filterClauses = [];
-        foreach ($filterMap as $key => $col) {
-            if (empty($f[$key])) continue;
-
-            $val = $f[$key];
-            if ($key === 'filterSemester') {
-                $val = ($val === 'GANJIL' || (string) $val === '1') ? 1 : 2;
-            }
-
-            $b               = count($bindings) + 1;
-            $filterClauses[] = "{$col} = \${$b}";
-            $bindings[]      = $val;
-        }
-
-        if (!empty($filterClauses)) {
-            $glue         = ($f['filterOperator'] ?? 'AND') === 'OR' ? ' OR ' : ' AND ';
-            $conditions[] = '(' . implode($glue, $filterClauses) . ')';
-        }
-
-        $whereSql = empty($conditions) ? '' : 'WHERE ' . implode(' AND ', $conditions);
-        return [$whereSql, $bindings];
-    }
-
-    /**
-     * interpolateBindings()
-     * ─────────────────────────────────────────────────────────────────────────
-     * Interpolasi positional bindings ($1, $2, ...) ke SQL string.
-     * HANYA dipakai untuk COPY TO STDOUT yang tidak support prepared statement.
-     */
-    public static function interpolateBindings(string $sql, array $bindings): string
-    {
-        foreach ($bindings as $i => $val) {
-            $placeholder = '$' . ($i + 1);
-            if (is_int($val)) {
-                $escaped = (string) $val;
-            } elseif (is_null($val)) {
-                $escaped = 'NULL';
-            } else {
-                $escaped = function_exists('pg_escape_literal')
-                    ? pg_escape_literal((string) $val)
-                    : "'" . addslashes((string) $val) . "'";
-            }
-            $sql = str_replace($placeholder, $escaped, $sql);
-        }
-        return $sql;
-    }
-
-    /**
-     * buildPgConnString()
-     * ─────────────────────────────────────────────────────────────────────────
-     * Buat connection string PostgreSQL native dari config Laravel.
-     */
-    public static function buildPgConnString(): string
-    {
-        $cfg   = config('database.connections.' . config('database.default'));
-        $parts = [
-            'host='     . ($cfg['host']     ?? 'localhost'),
-            'port='     . ($cfg['port']     ?? 5432),
-            'dbname='   . ($cfg['database'] ?? ''),
-            'user='     . ($cfg['username'] ?? ''),
-            'password=' . ($cfg['password'] ?? ''),
-        ];
-        if (!empty($cfg['sslmode'])) {
-            $parts[] = 'sslmode=' . $cfg['sslmode'];
-        }
-        return implode(' ', $parts);
+        return $query->select([
+            'students.nim',
+            'students.name as student_name',
+            'courses.code as course_code',
+            'courses.name as course_name',
+            'enrollments.academic_year',
+            'enrollments.semester',
+            'enrollments.status',
+            'enrollments.created_at',
+        ])
+            ->orderBy($f['sortBy'] ?? 'enrollments.created_at', $f['sortDir'] ?? 'desc');
     }
 
     // ─── Soft Delete ───────────────────────────────────────────────────────────
@@ -738,26 +456,16 @@ class EnrollmentManager extends Component
     #[On('delete-confirmed')]
     public function delete($id = null): void
     {
-        DB::beginTransaction();
-
-        try {
-            if ($id) {
-                Enrollment::destroy($id);
-                $msg = 'Data KRS dipindahkan ke Sampah!';
-            } else {
-                Enrollment::whereIn('id', $this->selectedRows)->delete();
-                $this->selectedRows = [];
-                $this->selectAll    = false;
-                $msg = 'Semua data KRS terpilih dipindahkan ke Sampah!';
-            }
-
-            DB::commit();
-            $this->dispatch('notify', message: $msg, type: 'success');
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            report($e);
-            $this->dispatch('notify', message: 'Gagal memindahkan data ke Sampah!', type: 'error');
+        if ($id) {
+            Enrollment::destroy($id);
+            $msg = 'Data KRS dipindahkan ke Sampah!';
+        } else {
+            Enrollment::whereIn('id', $this->selectedRows)->delete();
+            $this->selectedRows = [];
+            $this->selectAll    = false;
+            $msg = 'Semua data KRS terpilih dipindahkan ke Sampah!';
         }
+        $this->dispatch('notify', message: $msg, type: 'success');
     }
 
     public function resetSelection(): void
@@ -769,41 +477,21 @@ class EnrollmentManager extends Component
     public function confirmTrash($id = null): void
     {
         $count = count($this->selectedRows);
-        $msg   = $id
-            ? 'Pindahkan data KRS ini ke keranjang sampah?'
-            : "Pindahkan {$count} data KRS terpilih ke keranjang sampah?";
-
+        $msg   = $id ? 'Pindahkan data KRS ini ke keranjang sampah?' : "Pindahkan {$count} data KRS terpilih ke keranjang sampah?";
         $this->dispatch('confirm-trash', id: $id, message: $msg);
     }
 
     #[On('trash-confirmed')]
     public function trash($id = null): void
     {
-        DB::beginTransaction();
-
-        try {
-            if ($id) {
-                Enrollment::destroy($id);
-                $msg = 'Data KRS dipindahkan ke Sampah!';
-            } else {
-                Enrollment::whereIn('id', $this->selectedRows)->delete();
-                $msg = count($this->selectedRows) . ' data KRS terpilih dipindahkan ke Sampah!';
-                $this->resetSelection();
-            }
-
-            DB::commit();
-            $this->dispatch('notify', message: $msg, type: 'success');
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            report($e);
-            $this->dispatch('notify', message: 'Gagal memindahkan data ke Sampah!', type: 'error');
+        if ($id) {
+            Enrollment::destroy($id);
+            $msg = 'Data KRS dipindahkan ke Sampah!';
+        } else {
+            Enrollment::whereIn('id', $this->selectedRows)->delete();
+            $msg = count($this->selectedRows) . ' data KRS terpilih dipindahkan ke Sampah!';
+            $this->resetSelection();
         }
-    }
-
-    public function getIsFilteredProperty()
-    {
-        return !empty($this->search)
-            || !empty($this->filterStatus)
-            || !empty($this->filterCourse);
+        $this->dispatch('notify', message: $msg, type: 'success');
     }
 }
