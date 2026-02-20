@@ -12,21 +12,10 @@
         <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
 
             {{-- ── Export CSV ──────────────────────────────────────────────────────
-                 TS-13 FIX:
-                 Alur yang benar untuk mendukung SweetAlert2 + file besar (≥100MB):
-
-                 1. wire:click="prepareExportCsv" → Livewire simpan filter aktif ke
-                    session (bukan query string) → dispatch event JS 'csv-ready'.
-                 2. JS mendengar 'csv-ready' → Swal loading muncul.
-                 3. JS buat <a> tersembunyi → klik ke URL download.
-                    Browser stream CSV native langsung ke disk — TIDAK lewat memori JS.
-                 4. Swal sukses muncul otomatis setelah download dimulai.
-
-                 KENAPA TIDAK PAKAI fetch() + blob untuk CSV:
-                 fetch() buffer seluruh file di memori browser sebelum bisa
-                 membuat blob. Untuk 5 juta baris (~500MB+) ini menyebabkan
-                 tab crash. Download native via anchor adalah satu-satunya
-                 cara yang benar untuk file streaming besar.
+                 Alur: wire:click="prepareExportCsv" → Livewire simpan filter ke Cache
+                 → dispatch event JS 'csv-ready' → browser download native via anchor.
+                 TIDAK menggunakan fetch()+blob agar file besar (5 juta baris) tidak
+                 membebani memori browser.
             --}}
             {{-- ── Export Dropdown (responsive) ──────────────────────────────── --}}
             <div class="flex flex-wrap items-center gap-2" x-data="{ exportOpen: false }" @click.outside="exportOpen = false">
@@ -97,7 +86,7 @@
                             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pilih Cakupan Export</p>
                         </div>
 
-                        {{-- Export Semua --}}
+                        {{-- Export Semua — selalu tampil --}}
                         <button wire:click="prepareExportCsv('all')" wire:loading.attr="disabled"
                             @click="exportOpen = false"
                             class="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors text-left group">
@@ -116,7 +105,8 @@
                             </svg>
                         </button>
 
-                        {{-- Export Hasil Filter --}}
+                        {{-- Export Hasil Filter — hanya muncul kalau ada filter/search aktif --}}
+                        @if($search !== '' || $filterStatus !== '' || $filterSemester !== '' || $filterYear !== '' || $filterCourse !== '')
                         <button wire:click="prepareExportCsv('filtered')" wire:loading.attr="disabled"
                             @click="exportOpen = false"
                             class="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors text-left group border-t border-slate-50 dark:border-gray-800">
@@ -127,15 +117,18 @@
                             </div>
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-bold text-slate-700 dark:text-gray-200 truncate">Hasil Filter</p>
-                                <p class="text-[11px] text-slate-400 truncate">Filter &amp; search yang aktif</p>
+                                <p class="text-[11px] text-slate-400 truncate">
+                                    {{ collect(['search' => $search, 'status' => $filterStatus, 'semester' => $filterSemester, 'tahun' => $filterYear, 'MK' => $filterCourse])->filter()->keys()->implode(', ') }} aktif
+                                </p>
                             </div>
                             <svg wire:loading wire:target="prepareExportCsv('filtered')" class="w-4 h-4 animate-spin shrink-0 text-indigo-500" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                             </svg>
                         </button>
+                        @endif
 
-                        {{-- Export Halaman Ini --}}
+                        {{-- Export Halaman Ini — selalu tampil --}}
                         <button wire:click="prepareExportCsv('page')" wire:loading.attr="disabled"
                             @click="exportOpen = false"
                             class="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors text-left group border-t border-slate-50 dark:border-gray-800">
@@ -514,10 +507,6 @@
         }, 1500);
     });
 
-    Livewire.on('xlsx-queued', () => {
-        _startXlsxPolling();
-    });
-
     Livewire.on('export-error', (event) => {
         const data = event[0] || event;
         Swal.fire({
@@ -528,106 +517,5 @@
         });
     });
 
-    // ─── Helper Functions ──────────────────────────────────────────────────
-    function _startXlsxPolling() {
-        Swal.fire({
-            icon: 'info',
-            title: 'Export XLSX Dimulai',
-            html: `File sedang diproses di <strong>background</strong>.<br>
-                   <small class="text-slate-500">Notifikasi otomatis muncul di halaman ini saat file siap.</small>`,
-            showConfirmButton: true,
-            confirmButtonText: 'Mengerti',
-        });
-
-        const pollUrl = '{{ route("enrollments.export.status") }}';
-        let retries = 0;
-        let pollTimer = null;
-
-        function doPoll() {
-            if (retries >= 120) {
-                clearInterval(pollTimer);
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Proses Terlalu Lama',
-                    text: 'Export melebihi batas waktu.'
-                });
-                return;
-            }
-            retries++;
-
-            fetch(pollUrl, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
-                    }
-                }).then(r => r.ok ? r.json() : null)
-                .then(data => {
-                    if (data && data.ready) {
-                        clearInterval(pollTimer);
-                        _showXlsxReady(data);
-                    }
-                }).catch(err => console.warn('[Polling Error]', err));
-        }
-
-        setTimeout(() => {
-            pollTimer = setInterval(doPoll, 5000);
-        }, 5000);
-    }
-
-    function _showXlsxReady(data) {
-        Swal.fire({
-            icon: 'success',
-            title: '✅ File XLSX Siap!',
-            html: `<p>File <strong>"${data.file}"</strong> berhasil dibuat.</p>`,
-            showConfirmButton: true,
-            confirmButtonText: '⬇ Unduh Sekarang',
-            confirmButtonColor: '#7c3aed',
-            showCancelButton: true,
-        }).then(result => {
-            if (result.isConfirmed) _downloadXlsxWithSwal(data.url, data.file);
-        });
-    }
-
-    function _downloadXlsxWithSwal(url, fileName) {
-        Swal.fire({
-            title: 'Mengunduh File…',
-            allowOutsideClick: false,
-            showConfirmButton: false,
-            didOpen: () => Swal.showLoading()
-        });
-
-        fetch(url, {
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? ''
-                }
-            })
-            .then(res => {
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                return res.blob();
-            })
-            .then(blob => {
-                const blobUrl = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = blobUrl;
-                link.download = fileName;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(blobUrl);
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil!',
-                    timer: 3000,
-                    showConfirmButton: false
-                });
-            }).catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal Mengunduh',
-                    text: error.message
-                });
-            });
-    }
 </script>
 @endscript
