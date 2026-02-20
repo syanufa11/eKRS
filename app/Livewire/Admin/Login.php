@@ -76,6 +76,6 @@ class Login extends Component
     public function render()
     {
         return view('livewire.admin.login')
-            ->extends('layouts.fullscreen-layout');
+            ->extends('layouts.fullscreen-layout')->title('Login');
     }
 }
