@@ -128,15 +128,6 @@
                             <div class="flex flex-wrap justify-center gap-1">
                                 @forelse($student->enrollments->groupBy('status') as $status => $items)
                                 @php
-<<<<<<< HEAD
-                                    $badgeColors = [
-                                        'DRAFT'     => 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
-                                        'SUBMITTED' => 'bg-blue-100 text-blue-700 ring-1 ring-blue-200',
-                                        'APPROVED'  => 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200',
-                                        'REJECTED'  => 'bg-red-100 text-red-700 ring-1 ring-red-200',
-                                    ];
-                                    $bc = $badgeColors[strtoupper($status)] ?? 'bg-slate-100 text-slate-600 ring-1 ring-slate-200';
-=======
                                 $badgeColors = [
                                 'DRAFT' => 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
                                 'SUBMITTED' => 'bg-blue-100 text-blue-700 ring-1 ring-blue-200',
@@ -144,7 +135,6 @@
                                 'REJECTED' => 'bg-red-100 text-red-700 ring-1 ring-red-200',
                                 ];
                                 $bc = $badgeColors[strtoupper($status)] ?? 'bg-slate-100 text-slate-600 ring-1 ring-slate-200';
->>>>>>> 98b3f57 (update 4)
                                 @endphp
                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold {{ $bc }}">
                                     {{ $items->count() }} {{ $status }}
@@ -283,15 +273,6 @@
                                     <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Status KRS</p>
                                     @foreach($krsStats['status_counts'] as $status => $count)
                                     @php
-<<<<<<< HEAD
-                                        $colors = [
-                                            'DRAFT'     => 'bg-slate-50 text-slate-600 ring-slate-200',
-                                            'SUBMITTED' => 'bg-blue-50 text-blue-700 ring-blue-200',
-                                            'APPROVED'  => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-                                            'REJECTED'  => 'bg-red-50 text-red-700 ring-red-200',
-                                        ];
-                                        $colorClass = $colors[strtoupper($status)] ?? 'bg-slate-50 text-slate-600 ring-slate-200';
-=======
                                     $colors = [
                                     'DRAFT' => 'bg-slate-50 text-slate-600 ring-slate-200',
                                     'SUBMITTED' => 'bg-blue-50 text-blue-700 ring-blue-200',
@@ -299,7 +280,6 @@
                                     'REJECTED' => 'bg-red-50 text-red-700 ring-red-200',
                                     ];
                                     $colorClass = $colors[strtoupper($status)] ?? 'bg-slate-50 text-slate-600 ring-slate-200';
->>>>>>> 98b3f57 (update 4)
                                     @endphp
                                     <div class="flex items-center justify-between px-3 py-2 rounded-xl ring-1 {{ $colorClass }}">
                                         <span class="text-xs font-bold">{{ $status }}</span>
@@ -419,16 +399,6 @@
                                     <tbody class="divide-y divide-slate-50 bg-white">
                                         @forelse($enrollments as $krs)
                                         @php
-<<<<<<< HEAD
-                                            $course = $krs->course;
-                                            $statusColors = [
-                                                'DRAFT'     => 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
-                                                'SUBMITTED' => 'bg-blue-100 text-blue-700 ring-1 ring-blue-200',
-                                                'APPROVED'  => 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200',
-                                                'REJECTED'  => 'bg-red-100 text-red-700 ring-1 ring-red-200',
-                                            ];
-                                            $sc = $statusColors[strtoupper($krs->status ?? '')] ?? 'bg-slate-100 text-slate-600 ring-1 ring-slate-200';
-=======
                                         $course = $krs->course;
                                         $statusColors = [
                                         'DRAFT' => 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
@@ -437,7 +407,6 @@
                                         'REJECTED' => 'bg-red-100 text-red-700 ring-1 ring-red-200',
                                         ];
                                         $sc = $statusColors[strtoupper($krs->status ?? '')] ?? 'bg-slate-100 text-slate-600 ring-1 ring-slate-200';
->>>>>>> 98b3f57 (update 4)
                                         @endphp
                                         <tr wire:key="krs-{{ $krs->id }}" class="hover:bg-indigo-50/20 transition-colors">
 
