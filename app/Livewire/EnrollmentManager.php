@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Student;
 use App\Models\Course;
 use App\Models\Enrollment;
-use App\Jobs\ExportEnrollmentsJob;
 use App\Livewire\Traits\WithBreadcrumbs;
 
 class EnrollmentManager extends Component
@@ -66,7 +65,6 @@ class EnrollmentManager extends Component
 
     public $selectedRows = [];
     public $selectAll    = false;
-    public $exportJobDispatched = false;
 
     public function mount()
     {
@@ -260,7 +258,6 @@ class EnrollmentManager extends Component
     }
 
     // ─── Base query builder ────────────────────────────────────────────────────
-    // ─── Base query builder ────────────────────────────────────────────────────
     private function applyQuery()
     {
         return Enrollment::query()
@@ -331,21 +328,9 @@ class EnrollmentManager extends Component
     }
 
     // ─── Export Handling ───────────────────────────────────────────────────────
-    // Tambahkan properti untuk loading state
-    public $isExporting = false;
-
     /**
-     * Menyiapkan token ekspor berdasarkan cakupan (scope)
-     * Scope: 'all' (semua filter), 'current_page' (hanya page ini), 'selected' (checkbox)
-     */
-    /**
-     * Menyiapkan token ekspor.
-     *
-     * Scope yang tersedia:
-     *   'all'      → seluruh data (tanpa filter apapun)
-     *   'filtered' → hanya data sesuai filter/search aktif
-     *   'page'     → hanya baris pada halaman yang sedang ditampilkan
-     *   'selected' → hanya baris yang dicentang (checkbox)
+     * Menyiapkan token ekspor CSV.
+     * Scope: 'all' | 'filtered' | 'page' | 'selected'
      */
     public function prepareExportCsv($scope = 'all'): void
     {
@@ -433,10 +418,6 @@ class EnrollmentManager extends Component
     }
 
     /**
-     * Membangun query dasar untuk ekspor CSV/XLSX.
-     * Mendukung ekspor berdasarkan filter aktif atau baris yang dipilih secara spesifik.
-     */
-    /**
      * Membangun query export murni menggunakan raw PDO cursor via LazyCollection.
      *
      * Scope:
@@ -456,7 +437,7 @@ class EnrollmentManager extends Component
             $placeholders = implode(',', $ids); // integer literal, aman tanpa binding
             $where[]      = "enrollments.id IN ({$placeholders})";
 
-            return self::rawExportQuery(implode(' AND ', $where), $bindings, $f['sortBy'] ?? 'enrollments.id', $f['sortDir'] ?? 'asc');
+            return self::rawExportQuery(implode(' AND ', $where), $bindings);
         }
 
         // ── Scope 2: search teks ─────────────────────────────────────────────
@@ -497,61 +478,59 @@ class EnrollmentManager extends Component
             $where[] = '(' . implode($glue, $parts) . ')';
         }
 
-        return self::rawExportQuery(implode(' AND ', $where), $bindings, $f['sortBy'] ?? 'enrollments.id', $f['sortDir'] ?? 'asc');
+        return self::rawExportQuery(implode(' AND ', $where), $bindings);
     }
 
     /**
      * Jalankan raw SELECT dengan PDO cursor — paling cepat, paling hemat RAM.
      * Tidak ada Eloquent overhead, tidak ada model hydration.
      */
-    private static function rawExportQuery(string $whereClause, array $bindings, string $sortBy = 'enrollments.id', string $sortDir = 'asc')
+    private static function rawExportQuery(string $whereClause, array $bindings)
     {
-        // Whitelist kolom ORDER BY — cegah SQL injection
-        $allowedSortColumns = [
-            'enrollments.id',
-            'enrollments.created_at',
-            'enrollments.status',
-            'enrollments.academic_year',
-            'enrollments.semester',
-            'students.nim',
-            'students.name',
-            'courses.code',
-            'courses.name',
-        ];
-        if (!in_array($sortBy, $allowedSortColumns, true)) {
-            $sortBy = 'enrollments.id';
-        }
-        $sortDir = strtolower($sortDir) === 'desc' ? 'DESC' : 'ASC';
+        // Keyset pagination — jauh lebih cepat dan reliable dibanding LIMIT+OFFSET
+        // untuk data besar. OFFSET N di PostgreSQL makin lambat seiring N membesar
+        // karena DB harus skip N baris dulu. Keyset cukup pakai index pada id.
+        return new \Illuminate\Support\LazyCollection(function () use ($whereClause, $bindings) {
+            $chunkSize = 10000;
+            $lastId    = 0;
 
-        $sql = "
-            SELECT
-                enrollments.id,
-                students.nim,
-                students.name        AS student_name,
-                courses.code         AS course_code,
-                courses.name         AS course_name,
-                enrollments.academic_year,
-                enrollments.semester,
-                enrollments.status,
-                enrollments.created_at
-            FROM enrollments
-            INNER JOIN students ON enrollments.student_id = students.id
-            INNER JOIN courses  ON enrollments.course_id  = courses.id
-            WHERE {$whereClause}
-            ORDER BY {$sortBy} {$sortDir}
-        ";
+            // Ganti ORDER BY di sql asli dengan keyset WHERE + ORDER BY id ASC
+            // agar bisa pakai id sebagai cursor yang reliable.
+            $keySql = "
+                SELECT
+                    enrollments.id,
+                    students.nim,
+                    students.name        AS student_name,
+                    courses.code         AS course_code,
+                    courses.name         AS course_name,
+                    enrollments.academic_year,
+                    enrollments.semester,
+                    enrollments.status,
+                    enrollments.created_at
+                FROM enrollments
+                INNER JOIN students ON enrollments.student_id = students.id
+                INNER JOIN courses  ON enrollments.course_id  = courses.id
+                WHERE ({$whereClause}) AND enrollments.id > ?
+                ORDER BY enrollments.id ASC
+                LIMIT {$chunkSize}
+            ";
 
-        // DB::cursor() di PostgreSQL tidak selalu reliable dengan positional bindings.
-        // Gunakan raw PDO langsung agar execute() + fetch() benar-benar streaming
-        // baris per baris tanpa load semua data ke RAM.
-        return new \Illuminate\Support\LazyCollection(function () use ($sql, $bindings) {
-            $pdo  = DB::getPdo();
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(array_values($bindings));
-            $stmt->setFetchMode(\PDO::FETCH_OBJ);
+            while (true) {
+                $rows = DB::select($keySql, array_merge(array_values($bindings), [$lastId]));
 
-            while ($row = $stmt->fetch()) {
-                yield $row;
+                if (empty($rows)) {
+                    break;
+                }
+
+                foreach ($rows as $row) {
+                    yield $row;
+                }
+
+                $lastId = end($rows)->id;
+
+                if (count($rows) < $chunkSize) {
+                    break;
+                }
             }
         });
     }
