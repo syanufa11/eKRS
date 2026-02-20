@@ -11,19 +11,17 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EnrollmentExportController extends Controller
 {
-    private const FLUSH_EVERY = 500;
+    private const FLUSH_EVERY = 5000;
 
     public function csv(Request $request): StreamedResponse
     {
-        $token      = $request->query('token', '');
-        $cacheKey   = "csv_export_{$token}";
+        $token    = $request->query('token', '');
+        $cacheKey = "csv_export_{$token}";
 
-        // Ambil data dari Cache — jauh lebih reliable dari Session di shared hosting
-        // karena tidak bergantung pada cookie browser, session driver, atau domain match.
         $sessionData = Cache::get($cacheKey);
 
         if (!$sessionData) {
-            Log::warning('[CSV Export] Cache token tidak ditemukan', [
+            Log::warning('[CSV Export] Token tidak ditemukan', [
                 'token'        => $token,
                 'cache_driver' => config('cache.default'),
             ]);
@@ -35,13 +33,11 @@ class EnrollmentExportController extends Controller
             abort(410, 'Link ekspor sudah kedaluwarsa. Silakan klik Export CSV lagi.');
         }
 
-        // Hapus token segera — satu kali pakai, tidak bisa dipakai ulang
         Cache::forget($cacheKey);
 
         $filters  = $sessionData['filters'] ?? [];
         $fileName = 'enrollments_' . now()->format('Ymd_His') . '.csv';
 
-        // Matikan batas waktu & query log — wajib untuk dataset besar
         set_time_limit(0);
         ini_set('memory_limit', '-1');
         DB::disableQueryLog();
@@ -49,10 +45,6 @@ class EnrollmentExportController extends Controller
         return response()->streamDownload(
             function () use ($filters, $fileName) {
 
-                // ── Shared hosting fix #3: bersihkan output buffer ─────────────
-                // Shared hosting Apache sering punya ob aktif (mod_php, suhosin, dll)
-                // ob_end_clean() bisa gagal jika ada buffer yang tidak bisa dihapus,
-                // jadi gunakan @-suppress dan cukup flush saja jika gagal.
                 $obLevel = ob_get_level();
                 for ($i = 0; $i < $obLevel; $i++) {
                     if (!@ob_end_clean()) {
@@ -61,26 +53,18 @@ class EnrollmentExportController extends Controller
                     }
                 }
 
-                // ── Shared hosting fix #4: set header langsung via header() ────
-                // response()->streamDownload() kadang tidak cukup di shared hosting
-                // karena header sudah terlanjur dikirim oleh framework sebelum
-                // callback ini jalan. Kirim ulang header kritis via header() native.
                 if (!headers_sent()) {
                     header('Content-Type: text/csv; charset=UTF-8');
                     header('Content-Disposition: attachment; filename="' . $fileName . '"');
                     header('Cache-Control: no-store, no-cache, must-revalidate');
                     header('Pragma: no-cache');
                     header('X-Accel-Buffering: no');
-                    // Shared hosting Apache: matikan mod_deflate/gzip untuk response ini
                     header('Content-Encoding: none');
                 }
 
                 $handle = fopen('php://output', 'w');
-
-                // BOM UTF-8 — wajib agar Excel bisa baca karakter Indonesia
                 fwrite($handle, "\xEF\xBB\xBF");
 
-                // Header kolom
                 fputcsv($handle, [
                     'NIM',
                     'Nama Mahasiswa',
@@ -92,17 +76,10 @@ class EnrollmentExportController extends Controller
                     'Tanggal Daftar',
                 ]);
 
-                // Flush pertama — pastikan header + baris pertama langsung terkirim
-                if (ob_get_level() > 0) {
-                    ob_flush();
-                }
+                if (ob_get_level() > 0) ob_flush();
                 flush();
 
                 try {
-                    // Reconnect DB — di shared hosting koneksi bisa terputus
-                    // saat masuk ke dalam streamDownload callback
-                    DB::reconnect();
-
                     $f = $filters;
                     unset($f['perPage']);
                     if (empty($f['selected_ids'])) {
@@ -131,19 +108,14 @@ class EnrollmentExportController extends Controller
                         if ($rowCount % self::FLUSH_EVERY === 0) {
                             fwrite($handle, $buffer);
                             $buffer = '';
-                            if (ob_get_level() > 0) {
-                                ob_flush();
-                            }
+                            if (ob_get_level() > 0) ob_flush();
                             flush();
                         }
                     }
 
-                    // Flush sisa buffer terakhir
                     if ($buffer !== '') {
                         fwrite($handle, $buffer);
-                        if (ob_get_level() > 0) {
-                            ob_flush();
-                        }
+                        if (ob_get_level() > 0) ob_flush();
                         flush();
                     }
 
@@ -152,6 +124,7 @@ class EnrollmentExportController extends Controller
                     }
 
                     Log::info('[CSV Export] Selesai', ['rows' => $rowCount, 'file' => $fileName]);
+
                 } catch (\Throwable $e) {
                     Log::error('[CSV Export] ' . $e->getMessage(), [
                         'file'    => $e->getFile(),
@@ -181,7 +154,12 @@ class EnrollmentExportController extends Controller
         $parts = [];
         foreach ($fields as $field) {
             $field = (string) $field;
-            if (str_contains($field, '"') || str_contains($field, ',') || str_contains($field, "\n") || str_contains($field, "\r")) {
+            if (
+                str_contains($field, '"')
+                || str_contains($field, ',')
+                || str_contains($field, "\n")
+                || str_contains($field, "\r")
+            ) {
                 $parts[] = '"' . str_replace('"', '""', $field) . '"';
             } else {
                 $parts[] = $field;
