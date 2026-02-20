@@ -96,12 +96,19 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-5. **Jalankan migrasi dan seeder:**
+5. **Buat Database Baru:**
+Buka alat manajemen database Anda (pgAdmin, Laragon Terminal, atau Command Prompt) dan buat database baru dengan nama `krs`.
+```sql
+CREATE DATABASE krs;
+```
+*Jika menggunakan Laragon, pastikan layanan PostgreSQL sudah menyala (Start All).*
+
+6. **Jalankan migrasi dan seeder:**
 ```bash
 php artisan migrate:fresh --seed
 ```
 
-6. **Import data 5 juta baris (via PostgreSQL COPY) disesuaikan dengan lokasi storage/app:**
+7. **Import data 5 juta baris (via PostgreSQL COPY) disesuaikan dengan lokasi storage/app:**
 ```sql
 COPY enrollments(student_id, course_id, academic_year, semester, status, created_at, updated_at)
 FROM '/path/to/storage/app/enrollments_unique.csv'
@@ -114,7 +121,7 @@ SELECT COUNT(*) FROM enrollments;
 -- Output: 5.000.000
 ```
 
-7. **Jalankan server:**
+8. **Jalankan server:**
 ```bash
 php artisan serve
 ```
@@ -125,10 +132,10 @@ php artisan serve
 
 > Setelah menjalankan migrate & seeder, gunakan akun berikut untuk login sebagai admin:
 
-| Field    | Value             |
+| Field    | Value             |
 |----------|-------------------|
-| Email    | admin@ekrs.com    |
-| Password | password          |
+| Email    | admin@ekrs.com    |
+| Password | password          |
 
 ---
 
@@ -400,10 +407,12 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 
 
+---
+
 ## Pengembang
 
-| Field   | Detail                                              |
+| Field   | Detail                                              |
 |---------|-----------------------------------------------------|
-| Nama    | Tasya Nurul Fadila                                  |
-| Posisi  | Web Developer (Full Stack)                          |
-| Topik   | Pengelolaan Data Akademik Skala Besar (5 Juta Data) |
+| Nama    | Tasya Nurul Fadila                                  |
+| Posisi  | Web Developer (Full Stack)                          |
+| Topik   | Pengelolaan Data Akademik Skala Besar (5 Juta Data) |
