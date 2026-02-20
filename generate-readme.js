@@ -334,7 +334,6 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 ---
 
 ${screenshotSection}
----
 
 ## Pengembang
 
