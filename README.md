@@ -108,10 +108,19 @@ CREATE DATABASE krs;
 php artisan migrate:fresh --seed
 ```
 
-7. **Import data 5 juta baris (via PostgreSQL COPY) disesuaikan dengan lokasi storage/app:**
+7. **Import Data Masif (5 Juta Baris):**
+
+Buka **Terminal Laragon**, lalu masuk ke prompt PostgreSQL:
+```bash
+psql -U postgres -d krs
+```
+
+Setelah masuk ke prompt PostgreSQL (`krs=#`), jalankan perintah `COPY`. 
+**Catatan:** Harap tunggu beberapa saat hingga proses selesai karena ukuran data yang besar. Sesuaikan path file dengan lokasi absolut folder project Anda.
+
 ```sql
 COPY enrollments(student_id, course_id, academic_year, semester, status, created_at, updated_at)
-FROM '/path/to/storage/app/enrollments_unique.csv'
+FROM 'C:/path/to/your/project/storage/app/enrollments_unique.csv'
 DELIMITER ',' CSV;
 ```
 
