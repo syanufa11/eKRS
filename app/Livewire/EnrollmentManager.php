@@ -84,20 +84,20 @@ class EnrollmentManager extends Component
     }
 
     public function updatedSelectAll($value): void
-    {
-        if ($value) {
-            // Gunakan $this->perPage agar konsisten dengan tampilan aktif
-            $this->selectedRows = $this->applyQuery()
-                ->select('enrollments.id')
-                ->orderBy($this->sortBy, $this->sortDir)
-                ->paginate($this->perPage)
-                ->pluck('id')
-                ->map(fn($id) => (string) $id)
-                ->toArray();
-        } else {
-            $this->selectedRows = [];
-        }
+{
+    if ($value) {
+        $this->selectedRows = $this->applyQuery()
+            ->select('enrollments.id')
+            ->orderBy($this->sortBy, $this->sortDir)
+            // Tambahkan setPage agar mengambil ID di halaman yang sedang dibuka user
+            ->paginate($this->perPage, ['*'], 'page', $this->getPage())
+            ->pluck('id')
+            ->map(fn($id) => (string) $id)
+            ->toArray();
+    } else {
+        $this->selectedRows = [];
     }
+}
 
     // ─── Validation Helper (Dipanggil dari Blade/Alpine) ───────────────────────
     public function validateField($field): void
