@@ -22,7 +22,7 @@ class CourseManager extends Component
     #[Url(history: true)]
     public $sortBy = 'code';
     #[Url(history: true)]
-    public $sortDir = 'asc';
+    public $sortDir = 'desc';
     #[Url]
     public $filterCredits = '';
 
