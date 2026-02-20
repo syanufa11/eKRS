@@ -110,7 +110,7 @@ const screenshotDescriptions = {
     "Data Mahasiswa.png":
         "Halaman manajemen data mahasiswa. Menampilkan daftar seluruh mahasiswa yang terdaftar dalam sistem beserta informasi identitas pokok.",
     "Detail Mahasiswa.png":
-        "Tampilan detail profil mahasiswa tertentu yang mencakup riwayat akademik dan informasi pribadi.",
+        "Tampilan detail profil mahasiswa tertentu yang mencakup riwayat akademik dan informasi pribadi."
 };
 
 // Urutan custom sesuai alur pengujian
@@ -144,7 +144,7 @@ const customOrder = [
     "Export CSV (Filter).png",
     "Hasil CSV (Filter).png",
     "Data Mahasiswa.png",
-    "Detail Mahasiswa.png",
+    "Detail Mahasiswa.png"
 ];
 
 // ─── Build section screenshot ───────────────────────────────────────────────
