@@ -11,12 +11,15 @@
 
         <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
 
+<<<<<<< HEAD
             {{-- ── Export CSV ──────────────────────────────────────────────────────
                  Alur: wire:click="prepareExportCsv" → Livewire simpan filter ke Cache
                  → dispatch event JS 'csv-ready' → browser download native via anchor.
                  TIDAK menggunakan fetch()+blob agar file besar (5 juta baris) tidak
                  membebani memori browser.
             --}}
+=======
+>>>>>>> 98b3f57 (update 4)
             {{-- ── Export Dropdown (responsive) ──────────────────────────────── --}}
             <div class="flex flex-wrap items-center gap-2" x-data="{ exportOpen: false }" @click.outside="exportOpen = false">
 
@@ -150,6 +153,7 @@
                     </div>
                 </div>
             </div>
+
             {{-- ── Tambah Enrollment ───────────────────────────────────────────── --}}
             <button wire:click="create"
                 class="flex-1 lg:flex-none inline-flex items-center justify-center px-6 py-2.5
@@ -173,7 +177,6 @@
                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
                 Lihat Sampah
-
                 <span class="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
                     {{ $trashedCount }}
                 </span>
@@ -182,7 +185,7 @@
         </div>
     </div>
 
-    {{-- ─── Advanced Multi-Filter Section (tidak diubah) ─────────────────────── --}}
+    {{-- ─── Advanced Multi-Filter Section ─────────────────────────────────────── --}}
     <div class="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-[2rem] shadow-sm border border-slate-200/60 dark:border-gray-800 mb-4">
 
         {{-- Search + AND/OR toggle --}}
@@ -215,8 +218,6 @@
             </div>
         </div>
 
-        {{-- Filter grid: 2 kolom di mobile, 5 di layar sedang ke atas --}}
-        {{-- Ganti grid-cols-5 menjadi grid-cols-6 atau sesuaikan tata letaknya --}}
         <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 sm:gap-3 items-center">
 
             {{-- Dropdown Per Page --}}
@@ -231,6 +232,7 @@
                     <option value="100">100</option>
                 </select>
             </div>
+
             <select wire:model.live="filterYear"
                 class="bg-slate-50 dark:bg-gray-800 border-none rounded-xl text-xs py-2.5 px-3 focus:ring-2 focus:ring-indigo-500/20 cursor-pointer">
                 <option value="">Semua Tahun</option>
@@ -276,7 +278,6 @@
             count($selectedRows) > 0
             )
             <div class="col-span-2 sm:col-span-1">
-                {{-- Gunakan wire:click.prevent jika tombol berada di dalam form, atau pastikan type="button" --}}
                 <button type="button"
                     wire:click="resetFilters"
                     wire:loading.attr="disabled"
@@ -286,7 +287,6 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
 
-                    {{-- Indikator Loading saat proses reset --}}
                     <svg wire:loading wire:target="resetFilters" class="w-3.5 h-3.5 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
@@ -310,7 +310,6 @@
             </span>
 
             <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
-                {{-- Buang ke Sampah --}}
                 <button wire:click="confirmTrash()"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5
                            bg-rose-50 dark:bg-rose-500/10 text-rose-600
@@ -323,7 +322,6 @@
                     Buang ke Sampah
                 </button>
 
-                {{-- Batal --}}
                 <button wire:click="resetSelection"
                     class="text-xs font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-300
                            px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-700 transition-all">
@@ -375,13 +373,19 @@
                 <tbody class="divide-y divide-slate-100 dark:divide-gray-800">
                     @forelse($enrollments as $enrollment)
                     <tr wire:key="row-{{ $enrollment->id }}" class="hover:bg-slate-50/50 dark:hover:bg-gray-800/30 transition-colors">
-                        <td class="p-4 text-center" wire:key="cell-checkbox-{{ $enrollment->id }}">
+
+                        {{-- ✅ FIXED: Alpine reactive checkbox                          --}}
+                        {{-- x-bind:checked langsung watch $wire.selectedRows di client   --}}
+                        {{-- tidak bergantung Livewire re-render untuk update DOM checkbox --}}
+                        <td class="p-4 text-center"
+                            x-data="{ id: '{{ (string) $enrollment->id }}' }">
                             <input type="checkbox"
-                                wire:model.live="selectedRows"
-                                value="{{ $enrollment->id }}"
-                                wire:key="checkbox-{{ $enrollment->id }}"
+                                wire:key="chk-{{ $enrollment->id }}"
+                                x-bind:checked="$wire.selectedRows.includes(id)"
+                                x-on:change="$wire.toggleRow(id)"
                                 class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 size-4">
                         </td>
+
                         <td class="p-4 text-center text-sm font-medium text-slate-500">
                             {{ $enrollments->firstItem() + $loop->index }}
                         </td>
@@ -389,11 +393,9 @@
                             <div class="font-bold text-sm text-slate-700 dark:text-gray-200 leading-snug">
                                 {{ $enrollment->student_name }}
                             </div>
-
                             <div class="text-[11px] font-mono text-indigo-600 dark:text-indigo-400 font-semibold tracking-wider">
                                 {{ $enrollment->student_nim }}
                             </div>
-
                             <div class="flex flex-wrap items-center gap-1 mt-1">
                                 <span class="bg-slate-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-[10px] text-slate-500 dark:text-gray-400">
                                     {{ $enrollment->academic_year }}
@@ -468,9 +470,7 @@
 
 @script
 <script>
-    // ─── Listener event Livewire 3 ─────────────────────────────────────────
     Livewire.on('csv-ready', (event) => {
-        // Ambil payload event (menyesuaikan struktur parameter Livewire 3)
         const data = event[0] || event;
         const downloadUrl = data.url;
         const fileName = data.file ?? 'enrollments_export.csv';
@@ -516,6 +516,9 @@
             confirmButtonText: 'Tutup',
         });
     });
+<<<<<<< HEAD
 
+=======
+>>>>>>> 98b3f57 (update 4)
 </script>
 @endscript

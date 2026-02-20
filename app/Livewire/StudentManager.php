@@ -165,6 +165,7 @@ class StudentManager extends Component
 
     public function render()
     {
+<<<<<<< HEAD
       // render() — ubah query $students
 $students = Student::query()
     ->withCount('enrollments')
@@ -175,6 +176,18 @@ $students = Student::query()
     })
     ->orderBy($this->sortBy, $this->sortDir)
     ->paginate(15, ['*'], 'page');
+=======
+        // render() — ubah query $students
+        $students = Student::query()
+            ->withCount('enrollments')
+            ->with(['enrollments' => fn($q) => $q->select('student_id', 'status')]) // ← tambahkan ini
+            ->when($this->search, function ($q) {
+            $q->where('name', 'ilike', '%' . $this->search . '%')
+                ->orWhere('nim', 'ilike', $this->search . '%');
+            })
+            ->orderBy($this->sortBy, $this->sortDir)
+            ->paginate(15, ['*'], 'page');
+>>>>>>> 98b3f57 (update 4)
 
         $studentData    = null;
         $enrollments    = collect();
@@ -230,7 +243,7 @@ $students = Student::query()
             'enrollments'   => $enrollments,
             'krsStats'      => $krsStats,
             'statusOptions' => $statusOptions,
-            'trashedCount'  => \App\Models\Student::onlyTrashed()->count(),
+            'trashedCount'  => Student::onlyTrashed()->count(),
         ])
             ->layout('layouts.app', [
                 'breadcrumbs' => $this->breadcrumbs

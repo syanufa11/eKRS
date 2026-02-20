@@ -39,28 +39,27 @@ class EnrollmentManager extends Component
     public $selectedEnrollment;
 
     #[Url(history: true)]
-    public $perPage = 15; // Properti baru untuk limit halaman
+    public $perPage = 15;
 
-    // ─── Validasi menggunakan Atribut Livewire 3 ───────────────────────────
-    #[Validate('required|numeric|digits_between:8,12')]
+    #[Validate]
     public $student_nim;
 
-    #[Validate('required|string|min:3|max:100')]
+    #[Validate]
     public $student_name;
 
-    #[Validate('required|email|max:150')]
+    #[Validate]
     public $student_email;
 
-    #[Validate('required|exists:courses,id')]
+    #[Validate]
     public $course_id;
 
-    #[Validate(['required', 'regex:/^\d{4}\/\d{4}$/'])]
+    #[Validate]
     public $academic_year = '2025/2026';
 
-    #[Validate('required|in:1,2')]
+    #[Validate]
     public $semester = '1';
 
-    #[Validate('required|in:DRAFT,SUBMITTED,APPROVED,REJECTED')]
+    #[Validate]
     public $status = 'DRAFT';
 
     public $selectedRows = [];
@@ -69,6 +68,57 @@ class EnrollmentManager extends Component
     public function mount()
     {
         $this->breadcrumb('Enrollment Management');
+
+        // Kalau URL tidak punya ?sortBy, gunakan default created_at desc
+        if (!request()->has('sortBy')) {
+            $this->sortBy  = 'enrollments.created_at';
+            $this->sortDir = 'desc';
+        }
+    }
+
+    // ─── Aturan Validasi ───────────────────────────────────────────────────────
+    protected function rules(): array
+    {
+        return [
+            'student_nim'   => 'required|numeric|digits_between:8,12',
+            'student_name'  => 'required|string|min:3|max:100',
+            'student_email' => 'required|email|max:150',
+            'course_id'     => 'required|exists:courses,id',
+            'academic_year' => ['required', 'regex:/^\d{4}\/\d{4}$/'],
+            'semester'      => 'required|in:1,2',
+            'status'        => 'required|in:DRAFT,SUBMITTED,APPROVED,REJECTED',
+        ];
+    }
+
+    // ─── Pesan Validasi Bahasa Indonesia ──────────────────────────────────────
+    protected function messages(): array
+    {
+        return [
+            'student_nim.required'        => 'NIM wajib diisi.',
+            'student_nim.numeric'         => 'NIM harus berupa angka.',
+            'student_nim.digits_between'  => 'NIM harus terdiri dari 8 hingga 12 digit.',
+
+            'student_name.required'       => 'Nama mahasiswa wajib diisi.',
+            'student_name.string'         => 'Nama mahasiswa harus berupa teks.',
+            'student_name.min'            => 'Nama mahasiswa minimal 3 karakter.',
+            'student_name.max'            => 'Nama mahasiswa maksimal 100 karakter.',
+
+            'student_email.required'      => 'Email mahasiswa wajib diisi.',
+            'student_email.email'         => 'Format email tidak valid.',
+            'student_email.max'           => 'Email maksimal 150 karakter.',
+
+            'course_id.required'          => 'Mata kuliah wajib dipilih.',
+            'course_id.exists'            => 'Mata kuliah yang dipilih tidak ditemukan.',
+
+            'academic_year.required'      => 'Tahun akademik wajib diisi.',
+            'academic_year.regex'         => 'Format tahun akademik tidak valid. Gunakan format: 2025/2026.',
+
+            'semester.required'           => 'Semester wajib dipilih.',
+            'semester.in'                 => 'Semester tidak valid. Pilih Ganjil (1) atau Genap (2).',
+
+            'status.required'             => 'Status wajib dipilih.',
+            'status.in'                   => 'Status tidak valid. Pilih: Draft, Submitted, Approved, atau Rejected.',
+        ];
     }
 
     // ─── Pagination & Selection ────────────────────────────────────────────────
@@ -78,12 +128,13 @@ class EnrollmentManager extends Component
         $this->selectAll    = false;
     }
 
-    public function updatedPerPage()
+    public function updatedPerPage(): void
     {
         $this->resetPage();
     }
 
     public function updatedSelectAll($value): void
+<<<<<<< HEAD
 {
     if ($value) {
         $this->selectedRows = $this->applyQuery()
@@ -96,10 +147,37 @@ class EnrollmentManager extends Component
             ->toArray();
     } else {
         $this->selectedRows = [];
+=======
+    {
+        if ($value) {
+            $this->selectedRows = $this->applyQuery()
+                ->select('enrollments.id')
+                ->orderBy($this->sortBy, $this->sortDir)
+                ->forPage($this->getPage(), $this->perPage)
+                ->pluck('enrollments.id')
+                ->map(fn($id) => (string) $id)
+                ->toArray();
+        } else {
+            $this->selectedRows = [];
+        }
+>>>>>>> 98b3f57 (update 4)
     }
 }
 
-    // ─── Validation Helper (Dipanggil dari Blade/Alpine) ───────────────────────
+    public function updatedSortBy(): void
+    {
+        $this->selectedRows = [];
+        $this->selectAll    = false;
+        $this->resetPage();
+    }
+
+    public function updatedSortDir(): void
+    {
+        $this->selectedRows = [];
+        $this->selectAll    = false;
+    }
+
+    // ─── Validation Helper ────────────────────────────────────────────────────
     public function validateField($field): void
     {
         $this->validateOnly($field);
@@ -253,8 +331,12 @@ class EnrollmentManager extends Component
             $this->sortDir = $this->sortDir === 'asc' ? 'desc' : 'asc';
         } else {
             $this->sortBy  = $field;
-            $this->sortDir = 'asc';
+            $this->sortDir = 'desc';
         }
+
+        // Reset selection setiap kali sort berubah agar checkbox tidak kacau
+        $this->selectedRows = [];
+        $this->selectAll    = false;
     }
 
     // ─── Base query builder ────────────────────────────────────────────────────
@@ -263,35 +345,32 @@ class EnrollmentManager extends Component
         return Enrollment::query()
             ->join('students', 'enrollments.student_id', '=', 'students.id')
             ->join('courses', 'enrollments.course_id', '=', 'courses.id')
-            // Scope pencarian utama
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $search = trim($this->search);
-                    // PostgreSQL menggunakan ILIKE untuk case-insensitive
                     $q->where('students.nim', 'ilike', $search . '%')
                         ->orWhere('students.name', 'ilike', '%' . $search . '%')
                         ->orWhere('courses.code', 'ilike', $search . '%')
                         ->orWhere('courses.name', 'ilike', '%' . $search . '%');
                 });
             })
-            // Scope filter tambahan (Status, Semester, dll)
             ->where(function ($query) {
-                $isOr = $this->filterOperator === 'OR';
+                $isOr   = $this->filterOperator === 'OR';
                 $method = $isOr ? 'orWhere' : 'where';
 
-            if ($this->filterStatus) {
-                $query->$method('enrollments.status', $this->filterStatus);
-            }
+                if ($this->filterStatus) {
+                    $query->$method('enrollments.status', $this->filterStatus);
+                }
 
-            if ($this->filterYear) {
-                $query->$method('enrollments.academic_year', $this->filterYear);
-            }
+                if ($this->filterYear) {
+                    $query->$method('enrollments.academic_year', $this->filterYear);
+                }
 
-            if ($this->filterCourse) {
-                $query->$method('courses.code', $this->filterCourse);
-            }
+                if ($this->filterCourse) {
+                    $query->$method('courses.code', $this->filterCourse);
+                }
 
-            if ($this->filterSemester) {
+                if ($this->filterSemester) {
                     $val = $this->filterSemester === 'GANJIL' ? '1' : '2';
                     $query->$method('enrollments.semester', $val);
                 }
@@ -299,7 +378,6 @@ class EnrollmentManager extends Component
     }
 
     // ─── Render ────────────────────────────────────────────────────────────────
-
     public function render()
     {
         return view('livewire.enrollment-manager', [
@@ -312,7 +390,7 @@ class EnrollmentManager extends Component
                     'courses.name  as course_name'
                 )
                 ->orderBy($this->sortBy, $this->sortDir)
-                ->paginate($this->perPage), // Gunakan variabel dinamis
+                ->paginate($this->perPage),
             'courses_list' => Course::orderBy('code')->get(),
             'years_list'   => Enrollment::distinct()->orderBy('academic_year', 'desc')->pluck('academic_year'),
             'trashedCount' => Enrollment::onlyTrashed()->count(),
@@ -327,18 +405,42 @@ class EnrollmentManager extends Component
         $this->resetValidation();
     }
 
+<<<<<<< HEAD
     // ─── Export Handling ───────────────────────────────────────────────────────
     /**
      * Menyiapkan token ekspor CSV.
      * Scope: 'all' | 'filtered' | 'page' | 'selected'
+=======
+    // ─── Selection ────────────────────────────────────────────────────────────
+
+    /**
+     * Toggle individual row — dipanggil dari Alpine x-on:change di blade.
+     * Selalu pakai string agar konsisten dengan selectedRows array.
+>>>>>>> 98b3f57 (update 4)
      */
+    public function toggleRow(string $id): void
+    {
+        if (in_array($id, $this->selectedRows)) {
+            $this->selectedRows = array_values(array_filter($this->selectedRows, fn($r) => $r !== $id));
+            $this->selectAll    = false;
+        } else {
+            $this->selectedRows[] = $id;
+        }
+    }
+
+    public function resetSelection(): void
+    {
+        $this->selectedRows = [];
+        $this->selectAll    = false;
+    }
+
+    // ─── Export Handling ───────────────────────────────────────────────────────
     public function prepareExportCsv($scope = 'all'): void
     {
         try {
             $filters = $this->buildFilterSnapshot();
 
             match ($scope) {
-                // ── Export Semua: buang semua filter ──────────────────────────
                 'all' => $filters = [
                     'search'         => '',
                     'filterStatus'   => '',
@@ -350,11 +452,8 @@ class EnrollmentManager extends Component
                     'sortDir'        => 'desc',
                 ],
 
-                // ── Export Filter/Search: pakai snapshot filter aktif saat ini ─
-                'filtered' => null, // $filters sudah terisi dari buildFilterSnapshot()
+                'filtered' => null,
 
-                // ── Export Halaman Ini: ambil ID baris di page sekarang ────────
-                // Filter aktif ($filters) tetap dipakai, hanya batasi ke ID halaman ini
                 'page' => (function () use (&$filters) {
                     $filters['selected_ids'] = $this->applyQuery()
                         ->select('enrollments.id')
@@ -364,7 +463,6 @@ class EnrollmentManager extends Component
                         ->toArray();
                 })(),
 
-                // ── Export Terpilih: ID dari checkbox ─────────────────────────
                 'selected' => (function () use (&$filters) {
                     if (empty($this->selectedRows)) {
                         $this->dispatch('notify', message: 'Pilih data atau baris terlebih dahulu!', type: 'error');
@@ -377,9 +475,6 @@ class EnrollmentManager extends Component
             };
 
             $token = \Illuminate\Support\Str::random(32);
-            // Gunakan Cache bukan Session — lebih reliable di shared hosting
-            // karena tidak bergantung pada cookie browser atau session driver.
-            // Cache key di-prefix 'csv_export_' dan expire 10 menit.
             \Illuminate\Support\Facades\Cache::put("csv_export_{$token}", [
                 'filters'    => $filters,
                 'expires_at' => now()->addMinutes(10)->timestamp,
@@ -417,6 +512,7 @@ class EnrollmentManager extends Component
         ];
     }
 
+<<<<<<< HEAD
     /**
      * Membangun query export murni menggunakan raw PDO cursor via LazyCollection.
      *
@@ -425,34 +521,32 @@ class EnrollmentManager extends Component
      *   filter aktif → search + dropdown filter
      *   kosong semua → SELURUH data (no WHERE)
      */
+=======
+>>>>>>> 98b3f57 (update 4)
     public static function buildExportQuery(array $f)
     {
-        // Gunakan positional bindings (?) — array_values() wajib agar urutan index selalu 0,1,2...
         $where    = ['enrollments.deleted_at IS NULL'];
         $bindings = [];
 
-        // ── Scope 1: ID spesifik (page / selected) ──────────────────────────
         if (!empty($f['selected_ids'])) {
             $ids          = array_map('intval', (array) $f['selected_ids']);
-            $placeholders = implode(',', $ids); // integer literal, aman tanpa binding
+            $placeholders = implode(',', $ids);
             $where[]      = "enrollments.id IN ({$placeholders})";
 
             return self::rawExportQuery(implode(' AND ', $where), $bindings);
         }
 
-        // ── Scope 2: search teks ─────────────────────────────────────────────
         if (!empty($f['search'])) {
             $s      = trim($f['search']);
-            $sLike  = '%' . $s . '%';  // contains  — untuk nama
-            $sStart = $s . '%';         // starts-with — untuk NIM & kode MK
+            $sLike  = '%' . $s . '%';
+            $sStart = $s . '%';
             $where[]    = "(students.nim ILIKE ? OR students.name ILIKE ? OR courses.code ILIKE ? OR courses.name ILIKE ?)";
-            $bindings[] = $sStart;  // NIM starts-with
-            $bindings[] = $sLike;   // nama contains
-            $bindings[] = $sStart;  // kode MK starts-with
-            $bindings[] = $sLike;   // nama MK contains
+            $bindings[] = $sStart;
+            $bindings[] = $sLike;
+            $bindings[] = $sStart;
+            $bindings[] = $sLike;
         }
 
-        // ── Scope 3: dropdown filter ─────────────────────────────────────────
         $isOr  = ($f['filterOperator'] ?? 'AND') === 'OR';
         $glue  = $isOr ? ' OR ' : ' AND ';
         $parts = [];
@@ -481,6 +575,7 @@ class EnrollmentManager extends Component
         return self::rawExportQuery(implode(' AND ', $where), $bindings);
     }
 
+<<<<<<< HEAD
     /**
      * Jalankan raw SELECT dengan PDO cursor — paling cepat, paling hemat RAM.
      * Tidak ada Eloquent overhead, tidak ada model hydration.
@@ -490,12 +585,19 @@ class EnrollmentManager extends Component
         // Keyset pagination — jauh lebih cepat dan reliable dibanding LIMIT+OFFSET
         // untuk data besar. OFFSET N di PostgreSQL makin lambat seiring N membesar
         // karena DB harus skip N baris dulu. Keyset cukup pakai index pada id.
+=======
+    private static function rawExportQuery(string $whereClause, array $bindings)
+    {
+>>>>>>> 98b3f57 (update 4)
         return new \Illuminate\Support\LazyCollection(function () use ($whereClause, $bindings) {
             $chunkSize = 10000;
             $lastId    = 0;
 
+<<<<<<< HEAD
             // Ganti ORDER BY di sql asli dengan keyset WHERE + ORDER BY id ASC
             // agar bisa pakai id sebagai cursor yang reliable.
+=======
+>>>>>>> 98b3f57 (update 4)
             $keySql = "
                 SELECT
                     enrollments.id,
@@ -534,6 +636,7 @@ class EnrollmentManager extends Component
             }
         });
     }
+
     // ─── Soft Delete ───────────────────────────────────────────────────────────
     public function confirmDelete($id): void
     {
@@ -559,12 +662,6 @@ class EnrollmentManager extends Component
             $msg = 'Semua data KRS terpilih dipindahkan ke Sampah!';
         }
         $this->dispatch('notify', message: $msg, type: 'success');
-    }
-
-    public function resetSelection(): void
-    {
-        $this->selectedRows = [];
-        $this->selectAll    = false;
     }
 
     public function confirmTrash($id = null): void

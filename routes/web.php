@@ -17,6 +17,7 @@ use App\Livewire\StudentTrashedManager;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Livewire\Documentation;
+use Illuminate\Support\Facades\DB;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,6 +62,14 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::prefix('enrollments')->name('enrollments.')->group(function () {
         Route::get('/', EnrollmentManager::class)->name('index');
         Route::get('/trashed', EnrollmentTrashedManager::class)->name('trashed');
+
+        // ── Export routes di sini — di dalam prefix enrollments & group auth ──
+        // Letakkan SEBELUM fallback/wildcard agar tidak bentrok dengan route lain
+        Route::get('/export/csv', [EnrollmentExportController::class, 'csv'])
+            ->name('export.csv');
+
+        Route::get('/export/status', [EnrollmentExportController::class, 'status'])
+            ->name('export.status');
     });
 
     /*
@@ -99,20 +108,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
 | Export Routes (Controller Based)
 |--------------------------------------------------------------------------
 */
-Route::get('/enrollments/export/csv', [EnrollmentExportController::class, 'csv'])
-    ->name('enrollments.export.csv');
 
-// ── XLSX Job Status Polling ───────────────────────────────────────────────
-// Dipanggil JS setiap 5 detik setelah dispatch XLSX job.
-// Return JSON { ready: bool, url?, rows?, file? }
-Route::get('/enrollments/export/status', [EnrollmentExportController::class, 'status'])
-    ->name('enrollments.export.status');
 
 Route::fallback(function () {
     return view('errors.error-404'); // Sesuaikan dengan nama file view Anda
-});
-
-Route::get('/run-migrate', function () {
-    Artisan::call('migrate:fresh', ['--seed' => true]);
-    return "Migration & seed selesai!";
 });
