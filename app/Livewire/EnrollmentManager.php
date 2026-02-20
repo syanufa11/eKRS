@@ -88,10 +88,11 @@ class EnrollmentManager extends Component
     public function updatedSelectAll($value): void
     {
         if ($value) {
+            // Gunakan $this->perPage agar konsisten dengan tampilan aktif
             $this->selectedRows = $this->applyQuery()
                 ->select('enrollments.id')
                 ->orderBy($this->sortBy, $this->sortDir)
-                ->paginate(15)
+                ->paginate($this->perPage)
                 ->pluck('id')
                 ->map(fn($id) => (string) $id)
                 ->toArray();
@@ -338,37 +339,80 @@ class EnrollmentManager extends Component
      * Scope: 'all' (semua filter), 'current_page' (hanya page ini), 'selected' (checkbox)
      */
     /**
-     * Menyiapkan token ekspor yang adaptif terhadap filter dan scope.
-     * Scope: 'all' (semua filter), 'selected' (halaman/baris terpilih)
+     * Menyiapkan token ekspor.
+     *
+     * Scope yang tersedia:
+     *   'all'      → seluruh data (tanpa filter apapun)
+     *   'filtered' → hanya data sesuai filter/search aktif
+     *   'page'     → hanya baris pada halaman yang sedang ditampilkan
+     *   'selected' → hanya baris yang dicentang (checkbox)
      */
     public function prepareExportCsv($scope = 'all'): void
     {
         try {
-            // Ambil snapshot filter saat ini
             $filters = $this->buildFilterSnapshot();
 
-            // Tambahkan konteks pagination dan seleksi
-            $filters['perPage'] = $this->perPage;
+            match ($scope) {
+                // ── Export Semua: buang semua filter ──────────────────────────
+                'all' => $filters = [
+                    'search'         => '',
+                    'filterStatus'   => '',
+                    'filterSemester' => '',
+                    'filterYear'     => '',
+                    'filterCourse'   => '',
+                    'filterOperator' => 'AND',
+                    'sortBy'         => 'enrollments.id',
+                    'sortDir'        => 'desc',
+                ],
 
-            if ($scope === 'selected') {
-                if (empty($this->selectedRows)) {
-                    $this->dispatch('notify', message: 'Pilih data atau baris terlebih dahulu!', type: 'error');
-                    return;
-                }
-                // Kirim ID spesifik yang dicentang
-                $filters['selected_ids'] = $this->selectedRows;
-            }
+                // ── Export Filter/Search: pakai snapshot filter aktif saat ini ─
+                'filtered' => null, // $filters sudah terisi dari buildFilterSnapshot()
+
+                // ── Export Halaman Ini: ambil ID baris di page sekarang ────────
+                // Filter aktif ($filters) tetap dipakai, hanya batasi ke ID halaman ini
+                'page' => (function () use (&$filters) {
+                    $filters['selected_ids'] = $this->applyQuery()
+                        ->select('enrollments.id')
+                        ->orderBy($this->sortBy, $this->sortDir)
+                        ->forPage($this->getPage(), $this->perPage)
+                        ->pluck('enrollments.id')
+                        ->toArray();
+                })(),
+
+                // ── Export Terpilih: ID dari checkbox ─────────────────────────
+                'selected' => (function () use (&$filters) {
+                    if (empty($this->selectedRows)) {
+                        $this->dispatch('notify', message: 'Pilih data atau baris terlebih dahulu!', type: 'error');
+                        throw new \RuntimeException('__CANCEL__');
+                    }
+                    $filters['selected_ids'] = $this->selectedRows;
+                })(),
+
+                default => null,
+            };
 
             $token = \Illuminate\Support\Str::random(32);
-            session()->put("csv_export_{$token}", [
+            // Gunakan Cache bukan Session — lebih reliable di shared hosting
+            // karena tidak bergantung pada cookie browser atau session driver.
+            // Cache key di-prefix 'csv_export_' dan expire 10 menit.
+            \Illuminate\Support\Facades\Cache::put("csv_export_{$token}", [
                 'filters'    => $filters,
                 'expires_at' => now()->addMinutes(10)->timestamp,
-            ]);
+            ], now()->addMinutes(10));
 
-            $downloadUrl = route('enrollments.export.csv', ['token' => $token]);
-            $fileName    = 'enrollments_' . ($scope === 'selected' ? 'selected_' : 'filtered_') . now()->format('Ymd_His') . '.csv';
+            $suffixMap = [
+                'all'      => 'semua',
+                'filtered' => 'filter',
+                'page'     => 'halaman',
+                'selected' => 'terpilih',
+            ];
+            $fileName = 'enrollments_' . ($suffixMap[$scope] ?? $scope) . '_' . now()->format('Ymd_His') . '.csv';
 
-            $this->dispatch('csv-ready', url: $downloadUrl, file: $fileName);
+            $this->dispatch('csv-ready', url: route('enrollments.export.csv', ['token' => $token]), file: $fileName);
+        } catch (\RuntimeException $e) {
+            if ($e->getMessage() !== '__CANCEL__') {
+                $this->dispatch('export-error', message: 'Gagal menyiapkan ekspor: ' . $e->getMessage());
+            }
         } catch (\Exception $e) {
             $this->dispatch('export-error', message: 'Gagal menyiapkan ekspor: ' . $e->getMessage());
         }
@@ -392,55 +436,125 @@ class EnrollmentManager extends Component
      * Membangun query dasar untuk ekspor CSV/XLSX.
      * Mendukung ekspor berdasarkan filter aktif atau baris yang dipilih secara spesifik.
      */
+    /**
+     * Membangun query export murni menggunakan raw PDO cursor via LazyCollection.
+     *
+     * Scope:
+     *   selected_ids → whereIn (page/selected/checkbox)
+     *   filter aktif → search + dropdown filter
+     *   kosong semua → SELURUH data (no WHERE)
+     */
     public static function buildExportQuery(array $f)
     {
-        $query = Enrollment::query()
-            ->join('students', 'enrollments.student_id', '=', 'students.id')
-            ->join('courses',  'enrollments.course_id',  '=', 'courses.id');
+        // Gunakan positional bindings (?) — array_values() wajib agar urutan index selalu 0,1,2...
+        $where    = ['enrollments.deleted_at IS NULL'];
+        $bindings = [];
 
-        // 1. Prioritas: ID Terpilih (Bulk Action atau Per Page)
+        // ── Scope 1: ID spesifik (page / selected) ──────────────────────────
         if (!empty($f['selected_ids'])) {
-            $query->whereIn('enrollments.id', $f['selected_ids']);
-        } else {
-            // 2. Filter Pencarian
-            if (!empty($f['search'])) {
-                $search = trim($f['search']);
-                $query->where(function ($q) use ($search) {
-                    $q->where('students.nim', 'ilike', $search . '%')
-                        ->orWhere('students.name', 'ilike', '%' . $search . '%')
-                        ->orWhere('courses.code', 'ilike', $search . '%')
-                        ->orWhere('courses.name', 'ilike', '%' . $search . '%');
-                });
-            }
+            $ids          = array_map('intval', (array) $f['selected_ids']);
+            $placeholders = implode(',', $ids); // integer literal, aman tanpa binding
+            $where[]      = "enrollments.id IN ({$placeholders})";
 
-            // 3. Filter Dropdown (Status, Tahun, Semester)
-            $query->where(function ($q) use ($f) {
-                $isOr = ($f['filterOperator'] ?? 'AND') === 'OR';
-                $method = $isOr ? 'orWhere' : 'where';
-
-                if (!empty($f['filterStatus']))   $q->$method('enrollments.status', $f['filterStatus']);
-                if (!empty($f['filterYear']))     $q->$method('enrollments.academic_year', $f['filterYear']);
-                if (!empty($f['filterCourse']))   $q->$method('courses.code', $f['filterCourse']);
-                if (!empty($f['filterSemester'])) {
-                    $val = $f['filterSemester'] === 'GANJIL' ? '1' : '2';
-                    $q->$method('enrollments.semester', $val);
-                }
-            });
+            return self::rawExportQuery(implode(' AND ', $where), $bindings, $f['sortBy'] ?? 'enrollments.id', $f['sortDir'] ?? 'asc');
         }
 
-        return $query->select([
-            'students.nim',
-            'students.name as student_name',
-            'courses.code as course_code',
-            'courses.name as course_name',
-            'enrollments.academic_year',
-            'enrollments.semester',
-            'enrollments.status',
-            'enrollments.created_at',
-        ])
-            ->orderBy($f['sortBy'] ?? 'enrollments.created_at', $f['sortDir'] ?? 'desc');
+        // ── Scope 2: search teks ─────────────────────────────────────────────
+        if (!empty($f['search'])) {
+            $s      = trim($f['search']);
+            $sLike  = '%' . $s . '%';  // contains  — untuk nama
+            $sStart = $s . '%';         // starts-with — untuk NIM & kode MK
+            $where[]    = "(students.nim ILIKE ? OR students.name ILIKE ? OR courses.code ILIKE ? OR courses.name ILIKE ?)";
+            $bindings[] = $sStart;  // NIM starts-with
+            $bindings[] = $sLike;   // nama contains
+            $bindings[] = $sStart;  // kode MK starts-with
+            $bindings[] = $sLike;   // nama MK contains
+        }
+
+        // ── Scope 3: dropdown filter ─────────────────────────────────────────
+        $isOr  = ($f['filterOperator'] ?? 'AND') === 'OR';
+        $glue  = $isOr ? ' OR ' : ' AND ';
+        $parts = [];
+
+        if (!empty($f['filterStatus'])) {
+            $parts[]    = "enrollments.status = ?";
+            $bindings[] = $f['filterStatus'];
+        }
+        if (!empty($f['filterYear'])) {
+            $parts[]    = "enrollments.academic_year = ?";
+            $bindings[] = $f['filterYear'];
+        }
+        if (!empty($f['filterCourse'])) {
+            $parts[]    = "courses.code = ?";
+            $bindings[] = $f['filterCourse'];
+        }
+        if (!empty($f['filterSemester'])) {
+            $parts[]    = "enrollments.semester = ?";
+            $bindings[] = $f['filterSemester'] === 'GANJIL' ? '1' : '2';
+        }
+
+        if (!empty($parts)) {
+            $where[] = '(' . implode($glue, $parts) . ')';
+        }
+
+        return self::rawExportQuery(implode(' AND ', $where), $bindings, $f['sortBy'] ?? 'enrollments.id', $f['sortDir'] ?? 'asc');
     }
 
+    /**
+     * Jalankan raw SELECT dengan PDO cursor — paling cepat, paling hemat RAM.
+     * Tidak ada Eloquent overhead, tidak ada model hydration.
+     */
+    private static function rawExportQuery(string $whereClause, array $bindings, string $sortBy = 'enrollments.id', string $sortDir = 'asc')
+    {
+        // Whitelist kolom ORDER BY — cegah SQL injection
+        $allowedSortColumns = [
+            'enrollments.id',
+            'enrollments.created_at',
+            'enrollments.status',
+            'enrollments.academic_year',
+            'enrollments.semester',
+            'students.nim',
+            'students.name',
+            'courses.code',
+            'courses.name',
+        ];
+        if (!in_array($sortBy, $allowedSortColumns, true)) {
+            $sortBy = 'enrollments.id';
+        }
+        $sortDir = strtolower($sortDir) === 'desc' ? 'DESC' : 'ASC';
+
+        $sql = "
+            SELECT
+                enrollments.id,
+                students.nim,
+                students.name        AS student_name,
+                courses.code         AS course_code,
+                courses.name         AS course_name,
+                enrollments.academic_year,
+                enrollments.semester,
+                enrollments.status,
+                enrollments.created_at
+            FROM enrollments
+            INNER JOIN students ON enrollments.student_id = students.id
+            INNER JOIN courses  ON enrollments.course_id  = courses.id
+            WHERE {$whereClause}
+            ORDER BY {$sortBy} {$sortDir}
+        ";
+
+        // DB::cursor() di PostgreSQL tidak selalu reliable dengan positional bindings.
+        // Gunakan raw PDO langsung agar execute() + fetch() benar-benar streaming
+        // baris per baris tanpa load semua data ke RAM.
+        return new \Illuminate\Support\LazyCollection(function () use ($sql, $bindings) {
+            $pdo  = DB::getPdo();
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(array_values($bindings));
+            $stmt->setFetchMode(\PDO::FETCH_OBJ);
+
+            while ($row = $stmt->fetch()) {
+                yield $row;
+            }
+        });
+    }
     // ─── Soft Delete ───────────────────────────────────────────────────────────
     public function confirmDelete($id): void
     {

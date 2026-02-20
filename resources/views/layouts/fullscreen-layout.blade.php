@@ -12,9 +12,7 @@
     <title>{{ $title ?? 'Dashboard' }} | eKRS</title>
 
     <!-- Scripts -->
-    @if (file_exists(public_path('build/manifest.json')))
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @endif
     @livewireStyles
     <!-- Alpine.js -->
 

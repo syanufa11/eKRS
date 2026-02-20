@@ -9,7 +9,7 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-3 w-full lg:w-auto">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
 
             {{-- ── Export CSV ──────────────────────────────────────────────────────
                  TS-13 FIX:
@@ -28,52 +28,135 @@
                  tab crash. Download native via anchor adalah satu-satunya
                  cara yang benar untuk file streaming besar.
             --}}
-            <div class="flex flex-wrap items-center gap-3">
+            {{-- ── Export Dropdown (responsive) ──────────────────────────────── --}}
+            <div class="flex flex-wrap items-center gap-2" x-data="{ exportOpen: false }" @click.outside="exportOpen = false">
+
                 @if(count($selectedRows) > 0)
-                {{-- MODE: TERPILIH (Hanya muncul saat ada checklist) --}}
+                {{-- Checkbox mode: tombol export selected + clear ──────────────── --}}
                 <div class="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
-                    <button wire:click="prepareExportCsv('selected')"
-                        wire:loading.attr="disabled"
-                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-lg shadow-emerald-200 dark:shadow-none">
-
-                        <svg wire:loading wire:target="prepareExportCsv('selected')" class="w-4 h-4 animate-spin" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    <button wire:click="prepareExportCsv('selected')" wire:loading.attr="disabled"
+                        class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white
+                               px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm
+                               transition-all shadow-lg shadow-emerald-200 dark:shadow-none">
+                        <svg wire:loading wire:target="prepareExportCsv('selected')" class="w-3.5 h-3.5 animate-spin shrink-0" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                         </svg>
-
-                        <span>Export Terpilih ({{ count($selectedRows) }})</span>
+                        <svg wire:loading.remove wire:target="prepareExportCsv('selected')" class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span wire:loading.remove wire:target="prepareExportCsv('selected')">
+                            <span class="hidden sm:inline">Export Terpilih</span>
+                            <span class="sm:hidden">Terpilih</span>
+                            ({{ count($selectedRows) }})
+                        </span>
+                        <span wire:loading wire:target="prepareExportCsv('selected')">...</span>
                     </button>
-
-                    {{-- Tombol Batal/Clear --}}
-                    <button wire:click="clearSelection"
-                        class="p-2.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                    <button wire:click="resetSelection"
+                        class="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors"
                         title="Batalkan pilihan">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
-                @else
-                {{-- MODE: DEFAULT (Export Semua) --}}
-                <button wire:click="prepareExportCsv('all')"
-                    wire:loading.attr="disabled"
-                    class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center gap-2 shadow-sm">
-
-                    <svg wire:loading.remove wire:target="prepareExportCsv('all')" class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-
-                    <svg wire:loading wire:target="prepareExportCsv('all')" class="w-4 h-4 animate-spin" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                    </svg>
-
-                    <span wire:loading.remove wire:target="prepareExportCsv('all')">Export Semua Data</span>
-                    <span wire:loading wire:target="prepareExportCsv('all')">Menyiapkan...</span>
-                </button>
                 @endif
-            </div>
 
+                {{-- Dropdown 3 opsi export ─────────────────────────────────────── --}}
+                <div class="relative">
+                    <button @click="exportOpen = !exportOpen"
+                        class="inline-flex items-center gap-1.5 sm:gap-2
+                               bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+                               text-gray-700 dark:text-gray-200 px-3 sm:px-4 py-2 sm:py-2.5
+                               rounded-xl font-bold text-xs sm:text-sm hover:bg-gray-50 dark:hover:bg-gray-700
+                               transition-all shadow-sm"
+                        :class="exportOpen ? 'ring-2 ring-indigo-400' : ''">
+                        <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span class="hidden xs:inline">Export CSV</span>
+                        <span class="xs:hidden">CSV</span>
+                        <svg class="w-3 h-3 text-gray-400 transition-transform shrink-0" :class="exportOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    {{-- Dropdown Panel --}}
+                    <div x-show="exportOpen" x-cloak
+                        x-transition:enter="transition ease-out duration-150"
+                        x-transition:enter-start="opacity-0 -translate-y-1 scale-95"
+                        x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                        x-transition:leave="transition ease-in duration-100"
+                        x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                        x-transition:leave-end="opacity-0 -translate-y-1 scale-95"
+                        class="absolute right-0 mt-2 w-60 sm:w-64 bg-white dark:bg-gray-900
+                               rounded-2xl shadow-xl border border-slate-100 dark:border-gray-800
+                               overflow-hidden z-50">
+
+                        <div class="px-4 pt-3 pb-1.5 border-b border-slate-50 dark:border-gray-800">
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pilih Cakupan Export</p>
+                        </div>
+
+                        {{-- Export Semua --}}
+                        <button wire:click="prepareExportCsv('all')" wire:loading.attr="disabled"
+                            @click="exportOpen = false"
+                            class="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors text-left group">
+                            <div class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-gray-700 flex items-center justify-center shrink-0 group-hover:bg-slate-200 dark:group-hover:bg-gray-600 transition-colors">
+                                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h16" />
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-bold text-slate-700 dark:text-gray-200 truncate">Semua Data</p>
+                                <p class="text-[11px] text-slate-400 truncate">Seluruh data dari database</p>
+                            </div>
+                            <svg wire:loading wire:target="prepareExportCsv('all')" class="w-4 h-4 animate-spin shrink-0 text-indigo-500" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                        </button>
+
+                        {{-- Export Hasil Filter --}}
+                        <button wire:click="prepareExportCsv('filtered')" wire:loading.attr="disabled"
+                            @click="exportOpen = false"
+                            class="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors text-left group border-t border-slate-50 dark:border-gray-800">
+                            <div class="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center shrink-0 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-500/20 transition-colors">
+                                <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-bold text-slate-700 dark:text-gray-200 truncate">Hasil Filter</p>
+                                <p class="text-[11px] text-slate-400 truncate">Filter &amp; search yang aktif</p>
+                            </div>
+                            <svg wire:loading wire:target="prepareExportCsv('filtered')" class="w-4 h-4 animate-spin shrink-0 text-indigo-500" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                        </button>
+
+                        {{-- Export Halaman Ini --}}
+                        <button wire:click="prepareExportCsv('page')" wire:loading.attr="disabled"
+                            @click="exportOpen = false"
+                            class="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors text-left group border-t border-slate-50 dark:border-gray-800">
+                            <div class="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center shrink-0 group-hover:bg-amber-100 dark:group-hover:bg-amber-500/20 transition-colors">
+                                <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-bold text-slate-700 dark:text-gray-200 truncate">Halaman Ini</p>
+                                <p class="text-[11px] text-slate-400 truncate">{{ $perPage }} baris halaman sekarang</p>
+                            </div>
+                            <svg wire:loading wire:target="prepareExportCsv('page')" class="w-4 h-4 animate-spin shrink-0 text-indigo-500" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                        </button>
+
+                    </div>
+                </div>
+            </div>
             {{-- ── Tambah Enrollment ───────────────────────────────────────────── --}}
             <button wire:click="create"
                 class="flex-1 lg:flex-none inline-flex items-center justify-center px-6 py-2.5

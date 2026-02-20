@@ -101,7 +101,13 @@ class CourseManager extends Component
         } catch (\Throwable $e) {
             DB::rollBack();
             report($e);
-            $this->dispatch('notify', message: 'Terjadi kesalahan sistem!', type: 'error');
+
+            // Tampilkan pesan error teknis aslinya ke notifikasi
+            $this->dispatch(
+                'notify',
+                message: 'Detail Error: ' . $e->getMessage(),
+                type: 'error'
+            );
         }
     }
 
