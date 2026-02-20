@@ -165,14 +165,16 @@ class StudentManager extends Component
 
     public function render()
     {
-        $students = Student::query()
-            ->withCount('enrollments')
-            ->when($this->search, function ($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('nim', 'like', $this->search . '%');
-            })
-            ->orderBy($this->sortBy, $this->sortDir)
-            ->paginate(15, ['*'], 'page');
+      // render() — ubah query $students
+$students = Student::query()
+    ->withCount('enrollments')
+    ->with(['enrollments' => fn($q) => $q->select('student_id', 'status')]) // ← tambahkan ini
+    ->when($this->search, function ($q) {
+        $q->where('name', 'ilike', '%' . $this->search . '%')
+            ->orWhere('nim', 'ilike', $this->search . '%');
+    })
+    ->orderBy($this->sortBy, $this->sortDir)
+    ->paginate(15, ['*'], 'page');
 
         $studentData    = null;
         $enrollments    = collect();
@@ -241,4 +243,5 @@ class StudentManager extends Component
         $this->reset(['search', 'sortBy', 'sortDir']);
         $this->resetPage();
     }
+    
 }
