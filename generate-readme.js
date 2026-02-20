@@ -12,177 +12,174 @@ const screenshotDir = path.join(rootDir, "screenshoot");
 // Folder/file yang dianggap penting
 const importantFolders = ["app", "routes", "database", "resources", "public"];
 const importantFiles = [
-    ".env.example",
-    "composer.json",
-    "package.json",
-    "artisan",
+    ".env.example",
+    "composer.json",
+    "package.json",
+    "artisan",
 ];
 
 // Fungsi baca folder/file penting secara rekursif
 function readImportantFolder(dir, indent = "") {
-    let result = "";
-    const items = fs.readdirSync(dir);
-    items.forEach((item) => {
-        const fullPath = path.join(dir, item);
-        let isDir = false;
-        try {
-            isDir = fs.statSync(fullPath).isDirectory();
-        } catch {
-            return; // skip broken symlinks atau file yang tidak bisa diakses
-        }
+    let result = "";
+    if (!fs.existsSync(dir)) return result;
+    const items = fs.readdirSync(dir);
+    items.forEach((item) => {
+        const fullPath = path.join(dir, item);
+        let isDir = false;
+        try {
+            isDir = fs.statSync(fullPath).isDirectory();
+        } catch {
+            return;
+        }
 
-        if (isDir && importantFolders.includes(item)) {
-            result += `${indent}${item}/\n`;
-            result += readImportantFolder(fullPath, indent + "  ");
-        } else if (!isDir && importantFiles.includes(item)) {
-            result += `${indent}${item}\n`;
-        }
-    });
-    return result;
+        if (isDir && importantFolders.includes(item)) {
+            result += `${indent}${item}/\n`;
+            result += readImportantFolder(fullPath, indent + "  ");
+        } else if (!isDir && importantFiles.includes(item)) {
+            result += `${indent}${item}\n`;
+        }
+    });
+    return result;
 }
 
-// Struktur folder/file penting
 const structure = readImportantFolder(rootDir);
 
-// Fungsi encode nama file agar aman di GitHub Markdown
 function encodeFileName(fileName) {
-    return encodeURI(fileName);
+    return encodeURI(fileName);
 }
 
 // ─── Mapping penjelasan per nama file screenshot ───────────────────────────
 const screenshotDescriptions = {
-    "Login.png":
-        "Halaman login sistem eKRS. Pengguna memasukkan email dan password untuk mengakses dashboard. Akun default: `admin@ekrs.com` / `password`.",
-    "Dashboard.png":
-        "Halaman utama setelah login. Menampilkan ringkasan statistik sistem seperti jumlah mahasiswa, mata kuliah, dan total enrollment yang terdaftar.",
-    "Data Course.png":
-        "Halaman manajemen mata kuliah. Menampilkan daftar seluruh mata kuliah beserta kode, nama, dan jumlah SKS.",
-    "Form Course.png":
-        "Form tambah/edit mata kuliah dengan validasi real-time (Livewire).",
-    "Alert Success Tambah Course.png":
-        "Notifikasi sukses setelah data mata kuliah baru berhasil disimpan ke database.",
-    "Form Tambah Enrollment.png":
-        "Halaman pengisian KRS baru menggunakan transaksi atomik untuk menjaga integritas data.",
-    "Alert Success Tambah Enrollment.png":
-        "Notifikasi sukses setelah proses enrollment (pengisian KRS) berhasil dilakukan.",
-    "Data Enrollment.png":
-        "Halaman utama data enrollment (KRS). Menampilkan 5.000.000 baris data secara efisien menggunakan Server-Side Pagination.",
-    "Data Enrollment - Sorting Asc.png":
-        "Fitur sorting ascending (A→Z) yang dieksekusi langsung di PostgreSQL pada 5 juta data.",
-    "Data Enrollment - Sorting Desc.png":
-        "Fitur sorting descending (Z→A) yang dieksekusi di sisi server.",
-    "Data Enrollment - Filter Status.png":
-        "Quick Filter berdasarkan status aktif/tidak aktif secara real-time menggunakan Livewire.",
-    "Data Enrollment - Filter Semester.png":
-        "Penyaringan data enrollment berdasarkan semester tertentu.",
-    "Data Enrollment - AND.png":
-        "Advanced Filter dengan logika AND (menggabungkan beberapa kondisi sekaligus).",
-    "Data Enrollment - OR.png":
-        "Advanced Filter dengan logika OR untuk fleksibilitas pencarian.",
-    "Data Enrollment - Search NIM.png":
-        "Fitur Live Search berdasarkan NIM dengan mekanisme debounce 300ms.",
-    "Data Enrollment - Search Nama.png":
-        "Fitur Live Search berdasarkan Nama menggunakan index PostgreSQL untuk performa cepat.",
-    "Data Enrollment - Search Kode Mata Kuliah.png":
-        "Pencarian instan berdasarkan kode mata kuliah tertentu.",
-    "Form Edit Enrollment.png":
-        "Form untuk memperbarui data enrollment yang sudah ada dengan validasi berlapis.",
-    "Data Enrollment setelah update.png":
-        "Tampilan tabel yang langsung diperbarui setelah data berhasil di-update tanpa reload.",
-    "Pilih Data Enrollment (untuk dihapus).png":
-        "Proses seleksi data enrollment yang akan dihapus dari sistem.",
-    "Konfirmasi Hapus ke Trash.png":
-        "Dialog konfirmasi Soft Delete — memindahkan data ke tabel sampah tanpa menghapusnya dari disk.",
-    "Data Trash Enrollment.png":
-        "Halaman Trash yang menampung data yang telah dihapus sementara.",
-    "Konfirmasi Restore.png":
-        "Proses mengembalikan data dari Trash ke daftar aktif (Restore).",
-    "Konfirmasi Hapus Permanen.png":
-        "Dialog konfirmasi untuk menghapus data secara permanen (Force Delete) dari database.",
-    "Export CSV (All).png":
-        "Proses memulai ekspor seluruh 5.000.000 baris data menggunakan metode streaming.",
-    "Hasil CSV (All).png":
-        "Bukti file CSV hasil ekspor data keseluruhan yang berhasil diunduh.",
-    "Export CSV (Filter).png":
-        "Proses ekspor data yang sudah difilter sebelumnya agar laporan lebih spesifik.",
-    "Hasil CSV (Filter).png":
-        "File CSV yang hanya berisi data sesuai kriteria filter pengguna.",
-    "Data Mahasiswa.png":
-        "Halaman manajemen data mahasiswa. Menampilkan daftar seluruh mahasiswa yang terdaftar dalam sistem beserta informasi identitas pokok.",
-    "Detail Mahasiswa.png":
-        "Tampilan detail profil mahasiswa tertentu yang mencakup riwayat akademik dan informasi pribadi."
+    "Login.png":
+        "Halaman login sistem eKRS. Pengguna memasukkan email dan password untuk mengakses dashboard. Akun default: `admin@ekrs.com` / `password`.",
+    "Dashboard.png":
+        "Halaman utama setelah login. Menampilkan ringkasan statistik sistem seperti jumlah mahasiswa, mata kuliah, dan total enrollment yang terdaftar.",
+    "Data Course.png":
+        "Halaman manajemen mata kuliah. Menampilkan daftar seluruh mata kuliah beserta kode, nama, dan jumlah SKS.",
+    "Form Course.png":
+        "Form tambah/edit mata kuliah dengan validasi real-time (Livewire).",
+    "Alert Success Tambah Course.png":
+        "Notifikasi sukses setelah data mata kuliah baru berhasil disimpan ke database.",
+    "Form Tambah Enrollment.png":
+        "Halaman pengisian KRS baru menggunakan transaksi atomik untuk menjaga integritas data.",
+    "Alert Success Tambah Enrollment.png":
+        "Notifikasi sukses setelah proses enrollment (pengisian KRS) berhasil dilakukan.",
+    "Data Enrollment.png":
+        "Halaman utama data enrollment (KRS). Menampilkan 5.000.000 baris data secara efisien menggunakan Server-Side Pagination.",
+    "Data Enrollment - Sorting Asc.png":
+        "Fitur sorting ascending (A→Z) yang dieksekusi langsung di PostgreSQL pada 5 juta data.",
+    "Data Enrollment - Sorting Desc.png":
+        "Fitur sorting descending (Z→A) yang dieksekusi di sisi server.",
+    "Data Enrollment - Filter Status.png":
+        "Quick Filter berdasarkan status aktif/tidak aktif secara real-time menggunakan Livewire.",
+    "Data Enrollment - Filter Semester.png":
+        "Penyaringan data enrollment berdasarkan semester tertentu.",
+    "Data Enrollment - AND.png":
+        "Advanced Filter dengan logika AND (menggabungkan beberapa kondisi sekaligus).",
+    "Data Enrollment - OR.png":
+        "Advanced Filter dengan logika OR untuk fleksibilitas pencarian.",
+    "Data Enrollment - Search NIM.png":
+        "Fitur Live Search berdasarkan NIM dengan mekanisme debounce 300ms.",
+    "Data Enrollment - Search Nama.png":
+        "Fitur Live Search berdasarkan Nama menggunakan index PostgreSQL untuk performa cepat.",
+    "Data Enrollment - Search Kode Mata Kuliah.png":
+        "Pencarian instan berdasarkan kode mata kuliah tertentu.",
+    "Form Edit Enrollment.png":
+        "Form untuk memperbarui data enrollment yang sudah ada dengan validasi berlapis.",
+    "Data Enrollment setelah update.png":
+        "Tampilan tabel yang langsung diperbarui setelah data berhasil di-update tanpa reload.",
+    "Pilih Data Enrollment (untuk dihapus).png":
+        "Proses seleksi data enrollment yang akan dihapus dari sistem.",
+    "Konfirmasi Hapus ke Trash.png":
+        "Dialog konfirmasi Soft Delete — memindahkan data ke tabel sampah tanpa menghapusnya dari disk.",
+    "Data Trash Enrollment.png":
+        "Halaman Trash yang menampung data yang telah dihapus sementara.",
+    "Konfirmasi Restore.png":
+        "Proses mengembalikan data dari Trash ke daftar aktif (Restore).",
+    "Konfirmasi Hapus Permanen.png":
+        "Dialog konfirmasi untuk menghapus data secara permanen (Force Delete) dari database.",
+    "Export CSV (All).png":
+        "Proses memulai ekspor seluruh 5.000.000 baris data menggunakan metode streaming.",
+    "Hasil CSV (All).png":
+        "Bukti file CSV hasil ekspor data keseluruhan yang berhasil diunduh.",
+    "Export CSV (Filter).png":
+        "Proses ekspor data yang sudah difilter sebelumnya agar laporan lebih spesifik.",
+    "Hasil CSV (Filter).png":
+        "File CSV yang hanya berisi data sesuai kriteria filter pengguna.",
+    "Data Mahasiswa.png":
+        "Halaman manajemen data mahasiswa. Menampilkan daftar seluruh mahasiswa yang terdaftar dalam sistem beserta informasi identitas pokok.",
+    "Detail Mahasiswa.png":
+        "Tampilan detail profil mahasiswa tertentu yang mencakup riwayat akademik dan informasi pribadi.",
 };
 
 // Urutan custom sesuai alur pengujian
 const customOrder = [
-    "Login.png",
-    "Dashboard.png",
-    "Data Course.png",
-    "Form Course.png",
-    "Alert Success Tambah Course.png",
-    "Form Tambah Enrollment.png",
-    "Alert Success Tambah Enrollment.png",
-    "Data Enrollment.png",
-    "Data Enrollment - Sorting Asc.png",
-    "Data Enrollment - Sorting Desc.png",
-    "Data Enrollment - Filter Status.png",
-    "Data Enrollment - Filter Semester.png",
-    "Data Enrollment - AND.png",
-    "Data Enrollment - OR.png",
-    "Data Enrollment - Search NIM.png",
-    "Data Enrollment - Search Nama.png",
-    "Data Enrollment - Search Kode Mata Kuliah.png",
-    "Form Edit Enrollment.png",
-    "Data Enrollment setelah update.png",
-    "Pilih Data Enrollment (untuk dihapus).png",
-    "Konfirmasi Hapus ke Trash.png",
-    "Data Trash Enrollment.png",
-    "Konfirmasi Restore.png",
-    "Konfirmasi Hapus Permanen.png",
-    "Export CSV (All).png",
-    "Hasil CSV (All).png",
-    "Export CSV (Filter).png",
-    "Hasil CSV (Filter).png",
-    "Data Mahasiswa.png",
-    "Detail Mahasiswa.png"
+    "Login.png",
+    "Dashboard.png",
+    "Data Course.png",
+    "Form Course.png",
+    "Alert Success Tambah Course.png",
+    "Form Tambah Enrollment.png",
+    "Alert Success Tambah Enrollment.png",
+    "Data Enrollment.png",
+    "Data Enrollment - Sorting Asc.png",
+    "Data Enrollment - Sorting Desc.png",
+    "Data Enrollment - Filter Status.png",
+    "Data Enrollment - Filter Semester.png",
+    "Data Enrollment - AND.png",
+    "Data Enrollment - OR.png",
+    "Data Enrollment - Search NIM.png",
+    "Data Enrollment - Search Nama.png",
+    "Data Enrollment - Search Kode Mata Kuliah.png",
+    "Form Edit Enrollment.png",
+    "Data Enrollment setelah update.png",
+    "Pilih Data Enrollment (untuk dihapus).png",
+    "Konfirmasi Hapus ke Trash.png",
+    "Data Trash Enrollment.png",
+    "Konfirmasi Restore.png",
+    "Konfirmasi Hapus Permanen.png",
+    "Export CSV (All).png",
+    "Hasil CSV (All).png",
+    "Export CSV (Filter).png",
+    "Hasil CSV (Filter).png",
+    "Data Mahasiswa.png",
+    "Detail Mahasiswa.png",
 ];
 
 // ─── Build section screenshot ───────────────────────────────────────────────
 let screenshotSection = "";
 if (fs.existsSync(screenshotDir)) {
-    const availableImages = fs
-        .readdirSync(screenshotDir)
-        .filter((file) => /\.(png|jpg|jpeg|gif)$/i.test(file));
+    const availableImages = fs
+        .readdirSync(screenshotDir)
+        .filter((file) => /\.(png|jpg|jpeg|gif)$/i.test(file)); // File sesuai urutan custom + file lain yang tidak ada di list (fallback)
 
-    // File sesuai urutan custom + file lain yang tidak ada di list (fallback)
-    const orderedImages = [
-        ...customOrder.filter((f) => availableImages.includes(f)),
-        ...availableImages.filter((f) => !customOrder.includes(f)).sort(),
-    ];
+    const orderedImages = [
+        ...customOrder.filter((f) => availableImages.includes(f)),
+        ...availableImages.filter((f) => !customOrder.includes(f)).sort(),
+    ];
 
-    if (orderedImages.length > 0) {
-        screenshotSection = "## Screenshot\n\n";
+    if (orderedImages.length > 0) {
+        screenshotSection = "## Screenshot\n\n";
 
-       orderedImages.forEach((img, index) => {
-           const encodedImg = encodeFileName(img);
-           const label = img.replace(/\.(png|jpg|jpeg|gif)$/i, "");
-           const desc =
-               screenshotDescriptions[img] ||
-               "Dokumentasi tampilan antarmuka sistem eKRS.";
+        orderedImages.forEach((img, index) => {
+            const encodedImg = encodeFileName(img);
+            const label = img.replace(/\.(png|jpg|jpeg|gif)$/i, "");
+            const desc =
+                screenshotDescriptions[img] ||
+                "Dokumentasi tampilan antarmuka sistem eKRS.";
 
-           screenshotSection += `### ${index + 1}. ${label}\n\n`;
-           screenshotSection += `> ${desc}\n\n`;
-           screenshotSection += `![${img}](./screenshoot/${encodedImg})\n\n`;
+            screenshotSection += `### ${index + 1}. ${label}\n\n`;
+            screenshotSection += `> ${desc}\n\n`;
+            screenshotSection += `![${img}](./screenshoot/${encodedImg})\n\n`; // Hanya tambahkan garis pemisah jika BUKAN gambar terakhir
 
-           // Hanya tambahkan garis pemisah jika BUKAN gambar terakhir
-           if (index < orderedImages.length - 1) {
-               screenshotSection += `---\n\n`;
-           }
-       });
-    }
+            if (index < orderedImages.length - 1) {
+                screenshotSection += `---\n\n`;
+            }
+        });
+    }
 } else {
-    screenshotSection =
-        "## Screenshot\n\n> Folder `screenshoot/` belum ditemukan. Tambahkan gambar ke folder tersebut lalu jalankan ulang script ini.\n\n";
+    screenshotSection =
+        "## Screenshot\n\n> Folder `screenshoot/` belum ditemukan. Tambahkan gambar ke folder tersebut lalu jalankan ulang script ini.\n\n";
 }
 
 // ─── Konten README ──────────────────────────────────────────────────────────
