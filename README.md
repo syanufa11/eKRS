@@ -101,7 +101,7 @@ php artisan key:generate
 php artisan migrate:fresh --seed
 ```
 
-6. **Import data 5 juta baris (via PostgreSQL COPY): (sesuaikan dengan lokasi storage appnya)**
+6. **Import data 5 juta baris (via PostgreSQL COPY) disesuaikan dengan lokasi storage/app:**
 ```sql
 COPY enrollments(student_id, course_id, academic_year, semester, status, created_at, updated_at)
 FROM '/path/to/storage/app/enrollments_unique.csv'
@@ -200,15 +200,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 6. Detail Mahasiswa
-
-> Tampilan detail profil mahasiswa tertentu yang mencakup riwayat akademik dan informasi pribadi.
-
-![Detail Mahasiswa.png](./screenshoot/Detail%20Mahasiswa.png)
-
----
-
-### 7. Form Tambah Enrollment
+### 6. Form Tambah Enrollment
 
 > Halaman pengisian KRS baru menggunakan transaksi atomik untuk menjaga integritas data.
 
@@ -216,7 +208,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 8. Alert Success Tambah Enrollment
+### 7. Alert Success Tambah Enrollment
 
 > Notifikasi sukses setelah proses enrollment (pengisian KRS) berhasil dilakukan.
 
@@ -224,7 +216,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 9. Data Enrollment
+### 8. Data Enrollment
 
 > Halaman utama data enrollment (KRS). Menampilkan 5.000.000 baris data secara efisien menggunakan Server-Side Pagination.
 
@@ -232,7 +224,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 10. Data Enrollment - Sorting Asc
+### 9. Data Enrollment - Sorting Asc
 
 > Fitur sorting ascending (A→Z) yang dieksekusi langsung di PostgreSQL pada 5 juta data.
 
@@ -240,7 +232,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 11. Data Enrollment - Sorting Desc
+### 10. Data Enrollment - Sorting Desc
 
 > Fitur sorting descending (Z→A) yang dieksekusi di sisi server.
 
@@ -248,7 +240,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 12. Data Enrollment - Filter Status
+### 11. Data Enrollment - Filter Status
 
 > Quick Filter berdasarkan status aktif/tidak aktif secara real-time menggunakan Livewire.
 
@@ -256,7 +248,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 13. Data Enrollment - Filter Semester
+### 12. Data Enrollment - Filter Semester
 
 > Penyaringan data enrollment berdasarkan semester tertentu.
 
@@ -264,7 +256,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 14. Data Enrollment - AND
+### 13. Data Enrollment - AND
 
 > Advanced Filter dengan logika AND (menggabungkan beberapa kondisi sekaligus).
 
@@ -272,7 +264,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 15. Data Enrollment - OR
+### 14. Data Enrollment - OR
 
 > Advanced Filter dengan logika OR untuk fleksibilitas pencarian.
 
@@ -280,7 +272,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 16. Data Enrollment - Search NIM
+### 15. Data Enrollment - Search NIM
 
 > Fitur Live Search berdasarkan NIM dengan mekanisme debounce 300ms.
 
@@ -288,7 +280,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 17. Data Enrollment - Search Nama
+### 16. Data Enrollment - Search Nama
 
 > Fitur Live Search berdasarkan Nama menggunakan index PostgreSQL untuk performa cepat.
 
@@ -296,7 +288,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 18. Data Enrollment - Search Kode Mata Kuliah
+### 17. Data Enrollment - Search Kode Mata Kuliah
 
 > Pencarian instan berdasarkan kode mata kuliah tertentu.
 
@@ -304,7 +296,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 19. Form Edit Enrollment
+### 18. Form Edit Enrollment
 
 > Form untuk memperbarui data enrollment yang sudah ada dengan validasi berlapis.
 
@@ -312,7 +304,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 20. Data Enrollment setelah update
+### 19. Data Enrollment setelah update
 
 > Tampilan tabel yang langsung diperbarui setelah data berhasil di-update tanpa reload.
 
@@ -320,7 +312,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 21. Pilih Data Enrollment (untuk dihapus)
+### 20. Pilih Data Enrollment (untuk dihapus)
 
 > Proses seleksi data enrollment yang akan dihapus dari sistem.
 
@@ -328,7 +320,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 22. Konfirmasi Hapus ke Trash
+### 21. Konfirmasi Hapus ke Trash
 
 > Dialog konfirmasi Soft Delete — memindahkan data ke tabel sampah tanpa menghapusnya dari disk.
 
@@ -336,7 +328,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 23. Data Trash Enrollment
+### 22. Data Trash Enrollment
 
 > Halaman Trash yang menampung data yang telah dihapus sementara.
 
@@ -344,7 +336,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 24. Konfirmasi Restore
+### 23. Konfirmasi Restore
 
 > Proses mengembalikan data dari Trash ke daftar aktif (Restore).
 
@@ -352,7 +344,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 25. Konfirmasi Hapus Permanen
+### 24. Konfirmasi Hapus Permanen
 
 > Dialog konfirmasi untuk menghapus data secara permanen (Force Delete) dari database.
 
@@ -360,7 +352,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 26. Export CSV (All)
+### 25. Export CSV (All)
 
 > Proses memulai ekspor seluruh 5.000.000 baris data menggunakan metode streaming.
 
@@ -368,7 +360,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 27. Hasil CSV (All)
+### 26. Hasil CSV (All)
 
 > Bukti file CSV hasil ekspor data keseluruhan yang berhasil diunduh.
 
@@ -376,7 +368,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 28. Export CSV (Filter)
+### 27. Export CSV (Filter)
 
 > Proses ekspor data yang sudah difilter sebelumnya agar laporan lebih spesifik.
 
@@ -384,11 +376,27 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ---
 
-### 29. Hasil CSV (Filter)
+### 28. Hasil CSV (Filter)
 
 > File CSV yang hanya berisi data sesuai kriteria filter pengguna.
 
 ![Hasil CSV (Filter).png](./screenshoot/Hasil%20CSV%20(Filter).png)
+
+---
+
+### 29. Data Mahasiswa
+
+> Halaman manajemen data mahasiswa. Menampilkan daftar seluruh mahasiswa yang terdaftar dalam sistem beserta informasi identitas pokok.
+
+![Data Mahasiswa.png](./screenshoot/Data%20Mahasiswa.png)
+
+---
+
+### 30. Detail Mahasiswa
+
+> Tampilan detail profil mahasiswa tertentu yang mencakup riwayat akademik dan informasi pribadi.
+
+![Detail Mahasiswa.png](./screenshoot/Detail%20Mahasiswa.png)
 
 ---
 

@@ -61,8 +61,6 @@ const screenshotDescriptions = {
         "Form tambah/edit mata kuliah dengan validasi real-time (Livewire).",
     "Alert Success Tambah Course.png":
         "Notifikasi sukses setelah data mata kuliah baru berhasil disimpan ke database.",
-    "Detail Mahasiswa.png":
-        "Tampilan detail profil mahasiswa tertentu yang mencakup riwayat akademik dan informasi pribadi.",
     "Form Tambah Enrollment.png":
         "Halaman pengisian KRS baru menggunakan transaksi atomik untuk menjaga integritas data.",
     "Alert Success Tambah Enrollment.png":
@@ -109,6 +107,10 @@ const screenshotDescriptions = {
         "Proses ekspor data yang sudah difilter sebelumnya agar laporan lebih spesifik.",
     "Hasil CSV (Filter).png":
         "File CSV yang hanya berisi data sesuai kriteria filter pengguna.",
+    "Data Mahasiswa.png":
+        "Halaman manajemen data mahasiswa. Menampilkan daftar seluruh mahasiswa yang terdaftar dalam sistem beserta informasi identitas pokok.",
+    "Detail Mahasiswa.png":
+        "Tampilan detail profil mahasiswa tertentu yang mencakup riwayat akademik dan informasi pribadi.",
 };
 
 // Urutan custom sesuai alur pengujian
@@ -118,7 +120,6 @@ const customOrder = [
     "Data Course.png",
     "Form Course.png",
     "Alert Success Tambah Course.png",
-    "Detail Mahasiswa.png",
     "Form Tambah Enrollment.png",
     "Alert Success Tambah Enrollment.png",
     "Data Enrollment.png",
@@ -142,6 +143,8 @@ const customOrder = [
     "Hasil CSV (All).png",
     "Export CSV (Filter).png",
     "Hasil CSV (Filter).png",
+    "Data Mahasiswa.png",
+    "Detail Mahasiswa.png",
 ];
 
 // ─── Build section screenshot ───────────────────────────────────────────────
@@ -282,7 +285,7 @@ php artisan key:generate
 php artisan migrate:fresh --seed
 \`\`\`
 
-6. **Import data 5 juta baris (via PostgreSQL COPY):**
+6. **Import data 5 juta baris (via PostgreSQL COPY) disesuaikan dengan lokasi storage/app:**
 \`\`\`sql
 COPY enrollments(student_id, course_id, academic_year, semester, status, created_at, updated_at)
 FROM '/path/to/storage/app/enrollments_unique.csv'
