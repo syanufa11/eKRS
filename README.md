@@ -121,7 +121,15 @@ SELECT COUNT(*) FROM enrollments;
 -- Output: 5.000.000
 ```
 
-8. **Jalankan server:**
+8. **Install dependencies (Frontend) & Build Asset:**
+```bash
+npm install
+npm run dev
+# atau untuk produksi
+npm run build
+```
+
+9. **Jalankan server:**
 ```bash
 php artisan serve
 ```

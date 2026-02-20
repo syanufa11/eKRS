@@ -35,10 +35,4 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions) {
     // Optional: custom exception handling
 })
-
-    ->registered(function ($app) {
-        // Untuk hosting cPanel (public_html)
-        $app->usePublicPath(base_path('../public'));
-    })
-
     ->create();
