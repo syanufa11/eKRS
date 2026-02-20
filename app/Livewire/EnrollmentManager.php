@@ -21,10 +21,10 @@ class EnrollmentManager extends Component
     public $search = '';
 
     #[Url(history: true)]
-    public $sortBy = 'enrollments.created_at';
+    public $sortBy = 'students.nim';
 
     #[Url(history: true)]
-    public $sortDir = 'desc';
+    public $sortDir = 'asc';
 
     public $filterStatus   = '';
     public $filterSemester = '';
@@ -65,15 +65,20 @@ class EnrollmentManager extends Component
     public $selectedRows = [];
     public $selectAll    = false;
 
-    public function mount()
+    private array $sortableFields = [
+        'students.nim',
+        'students.name',
+        'courses.code',
+        'courses.name',
+        'enrollments.academic_year',
+        'enrollments.semester',
+        'enrollments.status',
+        'enrollments.created_at',
+    ];
+
+    public function mount(): void
     {
         $this->breadcrumb('Enrollment Management');
-
-        // Kalau URL tidak punya ?sortBy, gunakan default created_at desc
-        if (!request()->has('sortBy')) {
-            $this->sortBy  = 'enrollments.created_at';
-            $this->sortDir = 'desc';
-        }
     }
 
     // ─── Aturan Validasi ───────────────────────────────────────────────────────
@@ -131,6 +136,7 @@ class EnrollmentManager extends Component
     public function updatedPerPage(): void
     {
         $this->resetPage();
+        $this->dispatch('notify', message: 'Tampilan per halaman diperbarui.', type: 'info');
     }
 
     public function updatedSelectAll($value): void
@@ -159,6 +165,7 @@ class EnrollmentManager extends Component
     {
         $this->selectedRows = [];
         $this->selectAll    = false;
+        $this->resetPage();
     }
 
     // ─── Validation Helper ────────────────────────────────────────────────────
@@ -192,7 +199,13 @@ class EnrollmentManager extends Component
     public function resetFilters(): void
     {
         $this->reset(['search', 'filterStatus', 'filterSemester', 'filterYear', 'filterCourse']);
+        $this->sortBy       = 'students.nim';
+        $this->sortDir      = 'asc';
+        $this->perPage      = 15;
+        $this->selectedRows = [];
+        $this->selectAll    = false;
         $this->resetPage();
+        $this->dispatch('notify', message: 'Filter berhasil direset.', type: 'info');
     }
 
     // ─── Form helpers ──────────────────────────────────────────────────────────
@@ -311,14 +324,15 @@ class EnrollmentManager extends Component
     // ─── Sorting ───────────────────────────────────────────────────────────────
     public function setSort($field): void
     {
+        if (!in_array($field, $this->sortableFields)) return;
+
         if ($this->sortBy === $field) {
             $this->sortDir = $this->sortDir === 'asc' ? 'desc' : 'asc';
         } else {
             $this->sortBy  = $field;
-            $this->sortDir = 'desc';
+            $this->sortDir = 'asc';
         }
 
-        // Reset selection setiap kali sort berubah agar checkbox tidak kacau
         $this->selectedRows = [];
         $this->selectAll    = false;
     }
@@ -425,8 +439,8 @@ class EnrollmentManager extends Component
                     'filterYear'     => '',
                     'filterCourse'   => '',
                     'filterOperator' => 'AND',
-                    'sortBy'         => 'enrollments.id',
-                    'sortDir'        => 'desc',
+                    'sortBy'         => 'students.nim',
+                    'sortDir'        => 'asc',
                 ],
 
                 'filtered' => null,

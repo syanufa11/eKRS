@@ -76,9 +76,7 @@ class Dashboard extends Component
             'enrollments'   => $enrollments,
             'academicYears' => $academicYears,
         ])
-            ->layout('layouts.app', [
-                'breadcrumbs' => $this->breadcrumbs
-            ])
+            ->layout('layouts.app')
             ->title('Home');
     }
 }

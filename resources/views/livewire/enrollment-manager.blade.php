@@ -11,15 +11,6 @@
 
         <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
 
-<<<<<<< HEAD
-            {{-- ── Export CSV ──────────────────────────────────────────────────────
-                 Alur: wire:click="prepareExportCsv" → Livewire simpan filter ke Cache
-                 → dispatch event JS 'csv-ready' → browser download native via anchor.
-                 TIDAK menggunakan fetch()+blob agar file besar (5 juta baris) tidak
-                 membebani memori browser.
-            --}}
-=======
->>>>>>> 98b3f57 (update 4)
             {{-- ── Export Dropdown (responsive) ──────────────────────────────── --}}
             <div class="flex flex-wrap items-center gap-2" x-data="{ exportOpen: false }" @click.outside="exportOpen = false">
 
@@ -265,7 +256,7 @@
                 @endforeach
             </select>
 
-            {{-- Tombol Reset --}}
+            {{-- Tombol Reset — muncul kalau ada state yang berbeda dari default --}}
             @if(
             $search !== '' ||
             $filterStatus !== '' ||
@@ -273,8 +264,8 @@
             $filterYear !== '' ||
             $filterCourse !== '' ||
             $filterOperator !== 'AND' ||
-            $sortBy !== 'enrollments.created_at' ||
-            $sortDir !== 'desc' ||
+            $sortBy !== 'students.nim' ||
+            $sortDir !== 'asc' ||
             count($selectedRows) > 0
             )
             <div class="col-span-2 sm:col-span-1">
@@ -359,14 +350,40 @@
                             <div class="flex items-center gap-1.5">
                                 Mahasiswa / NIM
                                 <span class="text-slate-300 group-hover:text-indigo-500 transition-colors">
-                                    {{ $sortBy === 'students.nim' ? ($sortDir === 'asc' ? '↑' : '↓') : '↕' }}
+                                    @if($sortBy === 'students.nim')
+                                    {{ $sortDir === 'asc' ? '↑' : '↓' }}
+                                    @else
+                                    ↕
+                                    @endif
                                 </span>
                             </div>
                         </th>
-                        <th class="p-4 text-xs font-bold uppercase tracking-wider cursor-pointer group" wire:click="setSort('courses.code')">
-                            <div class="flex items-center gap-2">Mata Kuliah <span class="text-slate-300 group-hover:text-indigo-500">↕</span></div>
+                        <th class="p-4 text-xs font-bold uppercase tracking-wider cursor-pointer group"
+                            wire:click="setSort('courses.code')">
+                            <div class="flex items-center gap-2">
+                                Mata Kuliah
+                                <span class="text-slate-300 group-hover:text-indigo-500 transition-colors">
+                                    @if($sortBy === 'courses.code')
+                                    {{ $sortDir === 'asc' ? '↑' : '↓' }}
+                                    @else
+                                    ↕
+                                    @endif
+                                </span>
+                            </div>
                         </th>
-                        <th class="p-4 text-xs font-bold uppercase tracking-wider">Status</th>
+                        <th class="p-4 text-xs font-bold uppercase tracking-wider cursor-pointer group"
+                            wire:click="setSort('enrollments.status')">
+                            <div class="flex items-center gap-2">
+                                Status
+                                <span class="text-slate-300 group-hover:text-indigo-500 transition-colors">
+                                    @if($sortBy === 'enrollments.status')
+                                    {{ $sortDir === 'asc' ? '↑' : '↓' }}
+                                    @else
+                                    ↕
+                                    @endif
+                                </span>
+                            </div>
+                        </th>
                         <th class="p-4 text-xs font-bold uppercase tracking-wider text-right">Opsi</th>
                     </tr>
                 </thead>
@@ -374,9 +391,6 @@
                     @forelse($enrollments as $enrollment)
                     <tr wire:key="row-{{ $enrollment->id }}" class="hover:bg-slate-50/50 dark:hover:bg-gray-800/30 transition-colors">
 
-                        {{-- ✅ FIXED: Alpine reactive checkbox                          --}}
-                        {{-- x-bind:checked langsung watch $wire.selectedRows di client   --}}
-                        {{-- tidak bergantung Livewire re-render untuk update DOM checkbox --}}
                         <td class="p-4 text-center"
                             x-data="{ id: '{{ (string) $enrollment->id }}' }">
                             <input type="checkbox"
@@ -516,9 +530,5 @@
             confirmButtonText: 'Tutup',
         });
     });
-<<<<<<< HEAD
-
-=======
->>>>>>> 98b3f57 (update 4)
 </script>
 @endscript

@@ -56,53 +56,59 @@ const screenshotDescriptions = {
     "Dashboard.png":
         "Halaman utama setelah login. Menampilkan ringkasan statistik sistem seperti jumlah mahasiswa, mata kuliah, dan total enrollment yang terdaftar.",
     "Data Course.png":
-        "Halaman manajemen mata kuliah. Menampilkan daftar seluruh mata kuliah beserta kode, nama, dan jumlah SKS. Admin dapat menambah, mengedit, dan menghapus data.",
+        "Halaman manajemen mata kuliah. Menampilkan daftar seluruh mata kuliah beserta kode, nama, dan jumlah SKS.",
     "Form Course.png":
-        "Form tambah/edit mata kuliah dengan validasi real-time (Livewire). Kode mata kuliah divalidasi menggunakan Regex untuk memastikan format sesuai standar institusi.",
-    "Form Enrollment.png":
-        "Form pengisian KRS baru. Mahasiswa dan mata kuliah dihubungkan dalam satu transaksi atomik yang menjamin konsistensi data di tabel `students`, `courses`, dan `enrollments`.",
+        "Form tambah/edit mata kuliah dengan validasi real-time (Livewire).",
+    "Alert Success Tambah Course.png":
+        "Notifikasi sukses setelah data mata kuliah baru berhasil disimpan ke database.",
+    "Detail Mahasiswa.png":
+        "Tampilan detail profil mahasiswa tertentu yang mencakup riwayat akademik dan informasi pribadi.",
+    "Form Tambah Enrollment.png":
+        "Halaman pengisian KRS baru menggunakan transaksi atomik untuk menjaga integritas data.",
+    "Alert Success Tambah Enrollment.png":
+        "Notifikasi sukses setelah proses enrollment (pengisian KRS) berhasil dilakukan.",
     "Data Enrollment.png":
-        "Halaman utama data enrollment (KRS). Menampilkan 5.000.000 baris data secara efisien menggunakan Server-Side Pagination — hanya 10–25 baris yang dimuat per halaman.",
+        "Halaman utama data enrollment (KRS). Menampilkan 5.000.000 baris data secara efisien menggunakan Server-Side Pagination.",
     "Data Enrollment - Sorting Asc.png":
-        "Fitur sorting ascending (A→Z / terkecil→terbesar). Pengurutan dieksekusi langsung di PostgreSQL menggunakan `ORDER BY`, menjaga performa tetap stabil pada 5 juta data.",
+        "Fitur sorting ascending (A→Z) yang dieksekusi langsung di PostgreSQL pada 5 juta data.",
     "Data Enrollment - Sorting Desc.png":
-        "Fitur sorting descending (Z→A / terbesar→terkecil). Sama seperti sorting ascending, query dijalankan di sisi server tanpa memuat seluruh data ke memori.",
+        "Fitur sorting descending (Z→A) yang dieksekusi di sisi server.",
     "Data Enrollment - Filter Status.png":
-        "Quick Filter berdasarkan **Status** enrollment (aktif/tidak aktif). Filter bekerja real-time menggunakan Livewire dan mengirimkan query `WHERE` baru ke database tanpa reload halaman.",
+        "Quick Filter berdasarkan status aktif/tidak aktif secara real-time menggunakan Livewire.",
     "Data Enrollment - Filter Semester.png":
-        "Quick Filter berdasarkan **Semester**. Memungkinkan admin menyaring data enrollment per semester tertentu secara instan dari 5 juta baris data.",
+        "Penyaringan data enrollment berdasarkan semester tertentu.",
     "Data Enrollment - AND.png":
-        "Advanced Filter dengan logika **AND** — menggabungkan beberapa kondisi (misal: Tahun Ajaran + Status + Kode MK) secara bersamaan. Query dibangun dinamis oleh Laravel Query Builder.",
+        "Advanced Filter dengan logika AND (menggabungkan beberapa kondisi sekaligus).",
     "Data Enrollment - OR.png":
-        "Advanced Filter dengan logika **OR** — menampilkan data yang memenuhi salah satu dari beberapa kondisi yang dipilih. Cocok untuk pencarian data yang lebih fleksibel.",
+        "Advanced Filter dengan logika OR untuk fleksibilitas pencarian.",
     "Data Enrollment - Search NIM.png":
-        "Fitur Live Search berdasarkan **NIM**. Pencarian real-time dengan mekanisme debounce (300ms) agar tidak membebani server dengan query berlebih saat pengguna mengetik.",
+        "Fitur Live Search berdasarkan NIM dengan mekanisme debounce 300ms.",
     "Data Enrollment - Search Nama.png":
-        "Fitur Live Search berdasarkan **Nama Mahasiswa**. Query menggunakan klausa `LIKE` yang diarahkan ke indeks kolom PostgreSQL untuk hasil yang cepat di tengah 5 juta data.",
+        "Fitur Live Search berdasarkan Nama menggunakan index PostgreSQL untuk performa cepat.",
     "Data Enrollment - Search Kode Mata Kuliah.png":
-        "Fitur Live Search berdasarkan **Kode Mata Kuliah**. Memudahkan pencarian enrollment untuk mata kuliah tertentu secara spesifik dan instan.",
+        "Pencarian instan berdasarkan kode mata kuliah tertentu.",
     "Form Edit Enrollment.png":
-        "Form edit data enrollment yang sudah ada. Setiap perubahan melewati validasi berlapis (frontend + backend) dan dibungkus dalam Atomic Transaction untuk menjaga integritas data.",
-    "Alert Success Update Enrollment.png":
-        "Notifikasi sukses setelah data enrollment berhasil diperbarui. Alert ditampilkan secara real-time oleh Livewire tanpa reload halaman.",
+        "Form untuk memperbarui data enrollment yang sudah ada dengan validasi berlapis.",
     "Data Enrollment setelah update.png":
-        "Tampilan tabel enrollment setelah proses update berhasil dilakukan. Data terbaru langsung tercermin di tabel tanpa perlu refresh manual.",
-    "Data Enrollment - Konfirmasi Soft Delete.png":
-        "Dialog konfirmasi sebelum menghapus data enrollment. Sistem menggunakan **Soft Delete** — data tidak langsung hilang, melainkan ditandai `deleted_at` di database.",
-    "Data Enrollment - Menu Trash.png":
-        "Menu Trash (Sampah) yang menampilkan seluruh data enrollment yang telah di-soft delete. Admin dapat memilih untuk **restore** atau **force delete** secara permanen.",
-    "Data Enrollment - Halaman Trash.png":
-        "Halaman detail Trash. Memperlihatkan daftar data terhapus lengkap dengan opsi pemulihan (restore) per baris, menjaga fleksibilitas pengelolaan data tanpa risiko kehilangan permanen.",
-    "Data Enrollment - Filter Export CSV.png":
-        "Tampilan data enrollment yang telah difilter, siap untuk diekspor. Sistem mendukung ekspor **hanya data hasil filter** tanpa harus mengunduh seluruh 5 juta baris.",
-    "Alert Export CSV.png":
-        "Notifikasi konfirmasi saat proses export CSV dimulai. Ekspor menggunakan metode **streaming** sehingga file langsung dikirim ke browser tanpa membebani RAM server.",
-    "CSV Keseluruhan-1.png":
-        "Proses unduhan CSV keseluruhan (bagian 1). Seluruh 5.000.000 baris data diekspor menggunakan teknik streaming — data dikirim bit demi bit langsung ke browser.",
-    "CSV Keseluruhan-2.png":
-        "Proses unduhan CSV keseluruhan (bagian 2). Memperlihatkan kelanjutan proses streaming export yang berjalan lancar tanpa timeout atau memory exhaustion di sisi server.",
-    "CSV Filter.png":
-        "Hasil file CSV dari ekspor data yang telah difilter. Hanya baris data yang sesuai kondisi filter yang masuk ke file, menghasilkan laporan yang lebih ringkas dan relevan.",
+        "Tampilan tabel yang langsung diperbarui setelah data berhasil di-update tanpa reload.",
+    "Pilih Data Enrollment (untuk dihapus).png":
+        "Proses seleksi data enrollment yang akan dihapus dari sistem.",
+    "Konfirmasi Hapus ke Trash.png":
+        "Dialog konfirmasi Soft Delete — memindahkan data ke tabel sampah tanpa menghapusnya dari disk.",
+    "Data Trash Enrollment.png":
+        "Halaman Trash yang menampung data yang telah dihapus sementara.",
+    "Konfirmasi Restore.png":
+        "Proses mengembalikan data dari Trash ke daftar aktif (Restore).",
+    "Konfirmasi Hapus Permanen.png":
+        "Dialog konfirmasi untuk menghapus data secara permanen (Force Delete) dari database.",
+    "Export CSV (All).png":
+        "Proses memulai ekspor seluruh 5.000.000 baris data menggunakan metode streaming.",
+    "Hasil CSV (All).png":
+        "Bukti file CSV hasil ekspor data keseluruhan yang berhasil diunduh.",
+    "Export CSV (Filter).png":
+        "Proses ekspor data yang sudah difilter sebelumnya agar laporan lebih spesifik.",
+    "Hasil CSV (Filter).png":
+        "File CSV yang hanya berisi data sesuai kriteria filter pengguna.",
 };
 
 // Urutan custom sesuai alur pengujian
@@ -111,7 +117,10 @@ const customOrder = [
     "Dashboard.png",
     "Data Course.png",
     "Form Course.png",
-    "Form Enrollment.png",
+    "Alert Success Tambah Course.png",
+    "Detail Mahasiswa.png",
+    "Form Tambah Enrollment.png",
+    "Alert Success Tambah Enrollment.png",
     "Data Enrollment.png",
     "Data Enrollment - Sorting Asc.png",
     "Data Enrollment - Sorting Desc.png",
@@ -123,16 +132,16 @@ const customOrder = [
     "Data Enrollment - Search Nama.png",
     "Data Enrollment - Search Kode Mata Kuliah.png",
     "Form Edit Enrollment.png",
-    "Alert Success Update Enrollment.png",
     "Data Enrollment setelah update.png",
-    "Data Enrollment - Konfirmasi Soft Delete.png",
-    "Data Enrollment - Menu Trash.png",
-    "Data Enrollment - Halaman Trash.png",
-    "Data Enrollment - Filter Export CSV.png",
-    "Alert Export CSV.png",
-    "CSV Keseluruhan-1.png",
-    "CSV Keseluruhan-2.png",
-    "CSV Filter.png",
+    "Pilih Data Enrollment (untuk dihapus).png",
+    "Konfirmasi Hapus ke Trash.png",
+    "Data Trash Enrollment.png",
+    "Konfirmasi Restore.png",
+    "Konfirmasi Hapus Permanen.png",
+    "Export CSV (All).png",
+    "Hasil CSV (All).png",
+    "Export CSV (Filter).png",
+    "Hasil CSV (Filter).png",
 ];
 
 // ─── Build section screenshot ───────────────────────────────────────────────
