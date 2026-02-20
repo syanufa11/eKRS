@@ -122,11 +122,29 @@
                         </td>
                         <td class="p-4 font-medium">{{ $student->name }}</td>
                         <td class="p-4 text-sm text-gray-500 dark:text-gray-400">{{ $student->email }}</td>
+
+                        {{-- ─── Total KRS: colored status badges ─── --}}
                         <td class="p-4 text-center">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                                {{ $student->enrollments_count }} Matkul
-                            </span>
+                            <div class="flex flex-wrap justify-center gap-1">
+                                @forelse($student->enrollments->groupBy('status') as $status => $items)
+                                @php
+                                    $badgeColors = [
+                                        'DRAFT'     => 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
+                                        'SUBMITTED' => 'bg-blue-100 text-blue-700 ring-1 ring-blue-200',
+                                        'APPROVED'  => 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200',
+                                        'REJECTED'  => 'bg-red-100 text-red-700 ring-1 ring-red-200',
+                                    ];
+                                    $bc = $badgeColors[strtoupper($status)] ?? 'bg-slate-100 text-slate-600 ring-1 ring-slate-200';
+                                @endphp
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold {{ $bc }}">
+                                    {{ $items->count() }} {{ $status }}
+                                </span>
+                                @empty
+                                <span class="text-xs text-gray-400 font-medium">—</span>
+                                @endforelse
+                            </div>
                         </td>
+
                         <td class="p-4 text-right">
                             <div class="flex items-center justify-end gap-1">
                                 {{-- Detail --}}
@@ -255,16 +273,16 @@
                                     <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Status KRS</p>
                                     @foreach($krsStats['status_counts'] as $status => $count)
                                     @php
-                                    $colors = [
-                                    'aktif' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-                                    'lulus' => 'bg-blue-50 text-blue-700 ring-blue-200',
-                                    'gagal' => 'bg-red-50 text-red-700 ring-red-200',
-                                    'mengulang'=> 'bg-amber-50 text-amber-700 ring-amber-200',
-                                    ];
-                                    $colorClass = $colors[strtolower($status)] ?? 'bg-slate-50 text-slate-600 ring-slate-200';
+                                        $colors = [
+                                            'DRAFT'     => 'bg-slate-50 text-slate-600 ring-slate-200',
+                                            'SUBMITTED' => 'bg-blue-50 text-blue-700 ring-blue-200',
+                                            'APPROVED'  => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+                                            'REJECTED'  => 'bg-red-50 text-red-700 ring-red-200',
+                                        ];
+                                        $colorClass = $colors[strtoupper($status)] ?? 'bg-slate-50 text-slate-600 ring-slate-200';
                                     @endphp
                                     <div class="flex items-center justify-between px-3 py-2 rounded-xl ring-1 {{ $colorClass }}">
-                                        <span class="text-xs font-bold capitalize">{{ $status }}</span>
+                                        <span class="text-xs font-bold">{{ $status }}</span>
                                         <span class="text-xs font-black">{{ $count }} matkul</span>
                                     </div>
                                     @endforeach
@@ -294,7 +312,7 @@
                             <p class="text-xs text-slate-400 font-medium mt-0.5">Data mata kuliah yang pernah diambil</p>
                         </div>
 
-                        {{-- Search + Filter Status + Filter Semester --}}
+                        {{-- Search + Filter Status --}}
                         <div class="flex flex-col sm:flex-row flex-wrap gap-2 mb-4 shrink-0">
                             {{-- Search --}}
                             <div class="relative flex-1 min-w-[180px]">
@@ -315,7 +333,7 @@
                                     class="appearance-none pl-3 pr-8 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 text-slate-600 font-medium cursor-pointer min-w-[130px]">
                                     <option value="">Semua Status</option>
                                     @foreach($statusOptions as $opt)
-                                    <option value="{{ $opt }}">{{ ucfirst($opt) }}</option>
+                                    <option value="{{ $opt }}">{{ $opt }}</option>
                                     @endforeach
                                 </select>
                                 <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5">
@@ -381,14 +399,14 @@
                                     <tbody class="divide-y divide-slate-50 bg-white">
                                         @forelse($enrollments as $krs)
                                         @php
-                                        $course = $krs->course;
-                                        $statusColors = [
-                                        'aktif' => 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200',
-                                        'lulus' => 'bg-blue-100 text-blue-700 ring-1 ring-blue-200',
-                                        'gagal' => 'bg-red-100 text-red-700 ring-1 ring-red-200',
-                                        'mengulang' => 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
-                                        ];
-                                        $sc = $statusColors[strtolower($krs->status ?? '')] ?? 'bg-slate-100 text-slate-600 ring-1 ring-slate-200';
+                                            $course = $krs->course;
+                                            $statusColors = [
+                                                'DRAFT'     => 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
+                                                'SUBMITTED' => 'bg-blue-100 text-blue-700 ring-1 ring-blue-200',
+                                                'APPROVED'  => 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200',
+                                                'REJECTED'  => 'bg-red-100 text-red-700 ring-1 ring-red-200',
+                                            ];
+                                            $sc = $statusColors[strtoupper($krs->status ?? '')] ?? 'bg-slate-100 text-slate-600 ring-1 ring-slate-200';
                                         @endphp
                                         <tr wire:key="krs-{{ $krs->id }}" class="hover:bg-indigo-50/20 transition-colors">
 
@@ -418,15 +436,9 @@
 
                                             {{-- Semester --}}
                                             <td class="px-4 py-3.5 text-center">
-                                                @php
-                                                $semVal = $krs->semester ?? null;
-                                                @endphp
-
+                                                @php $semVal = $krs->semester ?? null; @endphp
                                                 @if($semVal !== null && $semVal !== '')
-                                                @php
-                                                // Tentukan ganjil/genap
-                                                $semesterType = ($semVal % 2 == 1) ? 'Ganjil' : 'Genap';
-                                                @endphp
+                                                @php $semesterType = ($semVal % 2 == 1) ? 'Ganjil' : 'Genap'; @endphp
                                                 <span class="inline-flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-sky-50 text-sky-700 font-black text-sm ring-1 ring-sky-100">
                                                     <span>{{ $semVal }}</span>
                                                     <span class="text-xs font-semibold">{{ $semesterType }}</span>
@@ -435,7 +447,6 @@
                                                 <span class="text-slate-300 text-sm font-bold">—</span>
                                                 @endif
                                             </td>
-
 
                                             {{-- Periode / Tahun Ajaran --}}
                                             <td class="px-4 py-3.5 text-center">
