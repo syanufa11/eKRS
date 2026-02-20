@@ -282,9 +282,9 @@ php artisan key:generate
 \`\`\`
 
 5. **Buat Database Baru:**
-Buka alat manajemen database Anda (pgAdmin, Laragon Terminal, atau Command Prompt) dan buat database baru dengan nama \`krs\`.
+Buka alat manajemen database Anda (pgAdmin, Laragon Terminal, atau Command Prompt) dan buat database baru dengan nama \`db_krs\`.
 \`\`\`sql
-CREATE DATABASE krs;
+CREATE DATABASE db_krs;
 \`\`\`
 *Jika menggunakan Laragon, pastikan layanan PostgreSQL sudah menyala (Start All).*
 
@@ -297,10 +297,10 @@ php artisan migrate:fresh --seed
 
 Buka **Terminal Laragon**, lalu masuk ke prompt PostgreSQL:
 \`\`\`bash
-psql -U postgres -d krs
+psql -U postgres -d db_krs
 \`\`\`
 
-Setelah masuk ke prompt PostgreSQL (\`krs=#\`), jalankan perintah \`COPY\`. 
+Setelah masuk ke prompt PostgreSQL (\`db_krs=#\`), jalankan perintah \`COPY\`.
 **Catatan:** Harap tunggu beberapa saat hingga proses selesai karena ukuran data yang besar. Sesuaikan path file dengan lokasi absolut folder project Anda.
 
 \`\`\`sql
