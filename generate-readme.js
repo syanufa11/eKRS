@@ -163,18 +163,22 @@ if (fs.existsSync(screenshotDir)) {
     if (orderedImages.length > 0) {
         screenshotSection = "## Screenshot\n\n";
 
-        orderedImages.forEach((img, index) => {
-            const encodedImg = encodeFileName(img);
-            const label = img.replace(/\.(png|jpg|jpeg|gif)$/i, "");
-            const desc =
-                screenshotDescriptions[img] ||
-                "Dokumentasi tampilan antarmuka sistem eKRS.";
+       orderedImages.forEach((img, index) => {
+           const encodedImg = encodeFileName(img);
+           const label = img.replace(/\.(png|jpg|jpeg|gif)$/i, "");
+           const desc =
+               screenshotDescriptions[img] ||
+               "Dokumentasi tampilan antarmuka sistem eKRS.";
 
-            screenshotSection += `### ${index + 1}. ${label}\n\n`;
-            screenshotSection += `> ${desc}\n\n`;
-            screenshotSection += `![${img}](./screenshoot/${encodedImg})\n\n`;
-            screenshotSection += `---\n\n`;
-        });
+           screenshotSection += `### ${index + 1}. ${label}\n\n`;
+           screenshotSection += `> ${desc}\n\n`;
+           screenshotSection += `![${img}](./screenshoot/${encodedImg})\n\n`;
+
+           // Hanya tambahkan garis pemisah jika BUKAN gambar terakhir
+           if (index < orderedImages.length - 1) {
+               screenshotSection += `---\n\n`;
+           }
+       });
     }
 } else {
     screenshotSection =

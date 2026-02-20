@@ -398,10 +398,7 @@ Laporan teknis lengkap mencakup implementasi seluruh skenario pengujian (TS-01 h
 
 ![Detail Mahasiswa.png](./screenshoot/Detail%20Mahasiswa.png)
 
----
 
-
----
 
 ## Pengembang
 
