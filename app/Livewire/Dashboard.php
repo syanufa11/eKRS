@@ -81,6 +81,4 @@ class Dashboard extends Component
             ])
             ->title('Home');
     }
-
-
 }

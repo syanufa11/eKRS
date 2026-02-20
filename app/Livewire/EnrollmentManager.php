@@ -134,20 +134,6 @@ class EnrollmentManager extends Component
     }
 
     public function updatedSelectAll($value): void
-<<<<<<< HEAD
-{
-    if ($value) {
-        $this->selectedRows = $this->applyQuery()
-            ->select('enrollments.id')
-            ->orderBy($this->sortBy, $this->sortDir)
-            // Tambahkan setPage agar mengambil ID di halaman yang sedang dibuka user
-            ->paginate($this->perPage, ['*'], 'page', $this->getPage())
-            ->pluck('id')
-            ->map(fn($id) => (string) $id)
-            ->toArray();
-    } else {
-        $this->selectedRows = [];
-=======
     {
         if ($value) {
             $this->selectedRows = $this->applyQuery()
@@ -160,9 +146,7 @@ class EnrollmentManager extends Component
         } else {
             $this->selectedRows = [];
         }
->>>>>>> 98b3f57 (update 4)
     }
-}
 
     public function updatedSortBy(): void
     {
@@ -405,18 +389,11 @@ class EnrollmentManager extends Component
         $this->resetValidation();
     }
 
-<<<<<<< HEAD
-    // ─── Export Handling ───────────────────────────────────────────────────────
-    /**
-     * Menyiapkan token ekspor CSV.
-     * Scope: 'all' | 'filtered' | 'page' | 'selected'
-=======
     // ─── Selection ────────────────────────────────────────────────────────────
 
     /**
      * Toggle individual row — dipanggil dari Alpine x-on:change di blade.
      * Selalu pakai string agar konsisten dengan selectedRows array.
->>>>>>> 98b3f57 (update 4)
      */
     public function toggleRow(string $id): void
     {
@@ -512,17 +489,6 @@ class EnrollmentManager extends Component
         ];
     }
 
-<<<<<<< HEAD
-    /**
-     * Membangun query export murni menggunakan raw PDO cursor via LazyCollection.
-     *
-     * Scope:
-     *   selected_ids → whereIn (page/selected/checkbox)
-     *   filter aktif → search + dropdown filter
-     *   kosong semua → SELURUH data (no WHERE)
-     */
-=======
->>>>>>> 98b3f57 (update 4)
     public static function buildExportQuery(array $f)
     {
         $where    = ['enrollments.deleted_at IS NULL'];
@@ -575,29 +541,12 @@ class EnrollmentManager extends Component
         return self::rawExportQuery(implode(' AND ', $where), $bindings);
     }
 
-<<<<<<< HEAD
-    /**
-     * Jalankan raw SELECT dengan PDO cursor — paling cepat, paling hemat RAM.
-     * Tidak ada Eloquent overhead, tidak ada model hydration.
-     */
     private static function rawExportQuery(string $whereClause, array $bindings)
     {
-        // Keyset pagination — jauh lebih cepat dan reliable dibanding LIMIT+OFFSET
-        // untuk data besar. OFFSET N di PostgreSQL makin lambat seiring N membesar
-        // karena DB harus skip N baris dulu. Keyset cukup pakai index pada id.
-=======
-    private static function rawExportQuery(string $whereClause, array $bindings)
-    {
->>>>>>> 98b3f57 (update 4)
         return new \Illuminate\Support\LazyCollection(function () use ($whereClause, $bindings) {
             $chunkSize = 10000;
             $lastId    = 0;
 
-<<<<<<< HEAD
-            // Ganti ORDER BY di sql asli dengan keyset WHERE + ORDER BY id ASC
-            // agar bisa pakai id sebagai cursor yang reliable.
-=======
->>>>>>> 98b3f57 (update 4)
             $keySql = "
                 SELECT
                     enrollments.id,
