@@ -2,7 +2,7 @@
     {{-- ─── Header Section ──────────────────────────────────────────────────────── --}}
     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
         <div>
-            <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Enrollment Manager</h1>
+            <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Enrollment Management</h1>
             <div class="flex items-center gap-2 mt-2">
                 <span class="flex h-2 w-2 rounded-full bg-green-500"></span>
                 <p class="text-sm text-slate-500 font-medium">Manajemen Data Enrollment & Filter Lanjutan</p>
