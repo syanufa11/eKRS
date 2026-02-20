@@ -227,10 +227,10 @@ class CourseManager extends Component
     public function setSort($column)
     {
         if ($this->sortBy === $column) {
-            $this->sortDir = ($this->sortDir === 'asc') ? 'desc' : 'asc';
+            $this->sortDir = ($this->sortDir === 'desc') ? 'asc' : 'desc';
         } else {
             $this->sortBy = $column;
-            $this->sortDir = 'asc';
+            $this->sortDir = 'desc';
         }
     }
 
