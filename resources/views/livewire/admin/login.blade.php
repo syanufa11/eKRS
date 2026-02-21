@@ -12,8 +12,7 @@
                     </p>
                 </div>
 
-                <form wire:submit="login">
-                    @csrf
+                <form wire:submit.prevent="login">
                     <div class="space-y-5">
                         <div>
                             <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
@@ -52,6 +51,8 @@
                             <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                             @enderror
                         </div>
+
+
 
                         <div>
                             <button type="submit" wire:loading.attr="disabled"

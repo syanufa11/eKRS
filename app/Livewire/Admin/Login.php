@@ -6,6 +6,8 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Rule;
+use Livewire\Attributes\On;
+use Illuminate\Support\Facades\DB;
 
 class Login extends Component
 {
@@ -26,9 +28,39 @@ class Login extends Component
 
     public function login()
     {
-        $credentials = $this->validate();
+        DB::beginTransaction();
 
-        if (!Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+        try {
+            $credentials = $this->validate();
+
+            if (!Auth::attempt($credentials, $this->remember)) {
+                throw ValidationException::withMessages([
+                    'email' => 'Kredensial tidak cocok.',
+                ]);
+            }
+
+            session()->regenerate();
+
+            session()->put([
+                'is_admin'   => true,
+                'admin_id'   => auth()->id(),
+                'admin_name' => auth()->user()->name,
+            ]);
+
+            DB::commit();
+
+            $this->dispatch(
+                'notify',
+                message: 'Selamat datang, ' . auth()->user()->name . '!',
+                type: 'success'
+            );
+
+            return redirect()->intended(route('dashboard'));
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            report($e);
+
             $this->dispatch(
                 'notify',
                 message: 'Email atau kata sandi salah!',
@@ -39,22 +71,6 @@ class Login extends Component
                 'email' => 'Kredensial tidak cocok.',
             ]);
         }
-
-        session()->regenerate();
-
-        session()->put([
-            'is_admin'   => true,
-            'admin_id'   => auth()->id(),
-            'admin_name' => auth()->user()->name,
-        ]);
-
-        $this->dispatch(
-            'notify',
-            message: 'Selamat datang, ' . auth()->user()->name . '!',
-            type: 'success'
-        );
-
-        return redirect()->intended(route('dashboard'));
     }
 
     public function render()
