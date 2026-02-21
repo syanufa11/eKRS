@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\DB;
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('guest')->group(function () {
+Route::middleware('web')->group(function () {
     Route::get('/login', Login::class)->name('login');
 });
 

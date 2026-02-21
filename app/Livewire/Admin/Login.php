@@ -28,49 +28,20 @@ class Login extends Component
 
     public function login()
     {
-        DB::beginTransaction();
+        $credentials = $this->validate();
 
-        try {
-            $credentials = $this->validate();
-
-            if (!Auth::attempt($credentials, $this->remember)) {
-                throw ValidationException::withMessages([
-                    'email' => 'Kredensial tidak cocok.',
-                ]);
-            }
-
-            session()->regenerate();
-
-            session()->put([
-                'is_admin'   => true,
-                'admin_id'   => auth()->id(),
-                'admin_name' => auth()->user()->name,
-            ]);
-
-            DB::commit();
-
-            $this->dispatch(
-                'notify',
-                message: 'Selamat datang, ' . auth()->user()->name . '!',
-                type: 'success'
-            );
-
-            return redirect()->intended(route('dashboard'));
-        } catch (\Throwable $e) {
-            DB::rollBack();
-
-            report($e);
-
-            $this->dispatch(
-                'notify',
-                message: 'Email atau kata sandi salah!',
-                type: 'error'
-            );
-
-            throw ValidationException::withMessages([
-                'email' => 'Kredensial tidak cocok.',
-            ]);
+        if (!Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+            $this->addError('email', 'Kredensial tidak cocok.');
+            return;
         }
+
+        session()->put([
+            'is_admin'   => true,
+            'admin_id'   => auth()->id(),
+            'admin_name' => auth()->user()->name,
+        ]);
+
+        $this->js("window.location.href = '" . route('dashboard') . "?welcome=1'");
     }
 
     public function render()

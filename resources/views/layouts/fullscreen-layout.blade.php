@@ -110,7 +110,30 @@ window.addEventListener('resize', checkMobile);">
 
     @yield('content')
 
-    @livewireScripts @include('layouts.flash')
+    @livewireScripts
+    @include('layouts.flash')
+
+<script>
+    document.addEventListener('livewire:init', () => {
+        Livewire.hook('request', ({ fail }) => {
+            fail(({ status, preventDefault }) => {
+                if (status === 419) {
+                    preventDefault();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Sesi Berakhir',
+                        text: 'Sesi kamu telah berakhir. Silakan login kembali.',
+                        confirmButtonText: 'Login Kembali',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                    }).then(() => {
+                        window.location.href = '{{ route("login") }}';
+                    });
+                }
+            });
+        });
+    });
+</script>
 </body>
 
 

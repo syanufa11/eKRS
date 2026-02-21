@@ -101,11 +101,62 @@
                  });
              });
          });
+     </script>
+     @if(session()->has('notify'))
+     <script>
+         document.addEventListener('livewire:init', () => {
+             const flashData = @json(session('notify'));
+             Livewire.dispatch('notify', [flashData]);
+             @php session() - > forget('notify');
+             @endphp
+         });
+     </script>
+     @endif
+     <script>
+         document.addEventListener('livewire:init', () => {
+             Livewire.hook('request', ({
+                 uri,
+                 options,
+                 payload,
+                 respond,
+                 succeed,
+                 fail
+             }) => {
+                 succeed(({
+                     status,
+                     json
+                 }) => {
+                     console.log('✅ Status:', status);
+                     console.log('📄 Response JSON:', json);
+                 });
 
-         @if(session()->has('notify'))
-         // Kita panggil event 'notify' secara manual di sisi client
-         // Data diambil dari session Laravel
-         const flashData = @json(session('notify'));
-         Livewire.dispatch('notify', [flashData]);
-         @endif
+                 fail(({
+                     status,
+                     content,
+                     preventDefault
+                 }) => {
+                     console.error('❌ Failed Status:', status);
+                     console.error('📄 Failed Content:', content);
+                 });
+             });
+         });
+     </script>
+     <script>
+         document.addEventListener('livewire:init', () => {
+             const params = new URLSearchParams(window.location.search);
+             if (params.get('welcome')) {
+                 Swal.fire({
+                     title: 'Berhasil!',
+                     text: 'Selamat datang, {{ auth()->user()->name ?? "" }}!',
+                     icon: 'success',
+                     confirmButtonText: 'OK',
+                     customClass: {
+                         confirmButton: 'px-6 py-2 rounded-lg text-white font-semibold bg-indigo-600'
+                     },
+                     buttonsStyling: false
+                 });
+                 // Hapus query param dari URL
+                 window.history.replaceState({}, '', window.location.pathname);
+             }
+         });
      </script>
