@@ -112,28 +112,52 @@ window.addEventListener('resize', checkMobile);">
 
     @livewireScripts
     @include('layouts.flash')
+    <script>
+        // 1. Sound Management
+        window.clickSound = new Audio('{{ asset("sounds/click.mp3") }}');
+        window.clickSound.volume = 0.3;
 
-<script>
-    document.addEventListener('livewire:init', () => {
-        Livewire.hook('request', ({ fail }) => {
-            fail(({ status, preventDefault }) => {
-                if (status === 419) {
-                    preventDefault();
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Sesi Berakhir',
-                        text: 'Sesi kamu telah berakhir. Silakan login kembali.',
-                        confirmButtonText: 'Login Kembali',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                    }).then(() => {
-                        window.location.href = '{{ route("login") }}';
-                    });
-                }
+        window.playClickSound = function() {
+            const audio = window.clickSound.cloneNode();
+            audio.volume = 0.15;
+            audio.play().catch(() => {});
+        }
+
+        // Global Click Listener
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('button, a[href], [role="button"]');
+            if (target && !target.disabled) {
+                window.playClickSound();
+            }
+        }, true);
+    </script>
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.hook('request', ({
+                fail
+            }) => {
+                fail(({
+                    status,
+                    preventDefault
+                }) => {
+                    if (status === 419) {
+                        preventDefault();
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Sesi Berakhir',
+                            text: 'Sesi kamu telah berakhir. Silakan login kembali.',
+                            confirmButtonText: 'Login Kembali',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                        }).then(() => {
+                            window.location.href = '{{ route("login") }}';
+                        });
+                    }
+                });
             });
         });
-    });
-</script>
+    </script>
+
 </body>
 
 
